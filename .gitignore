@@ -1,0 +1,9 @@
+﻿# Ignore dependencies
+node_modules/
+.env
+.env.local
+*.log
+venv/
+__pycache__/
+dist/
+build/
