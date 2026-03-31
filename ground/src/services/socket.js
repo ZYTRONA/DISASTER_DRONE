@@ -11,22 +11,34 @@ export const socket = io(BACKEND_URL, {
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
+  transports: ["websocket", "polling"],  // Support both transports
   // Add auth header when available (for future JWT implementation)
   extraHeaders: {
     "User-Agent": "NDRF-GroundStation/1.0",
   },
+  withCredentials: true,  // Allow credentials across origins
 });
 
 socket.on("connect", () => {
-  console.log("[Socket] Connected to backend:", socket.id);
+  console.log("[Socket] ✅ Connected to backend:", socket.id);
 });
 
 socket.on("disconnect", (reason) => {
-  console.log("[Socket] Disconnected from backend:", reason);
+  console.log("[Socket] ⚠️  Disconnected from backend:", reason);
+  if (reason === "transport error") {
+    console.warn("[Socket] Transport error - reconnecting with polling...");
+  }
 });
 
 socket.on("connect_error", (error) => {
-  console.error("[Socket] Connection error:", error.message);
+  console.error("[Socket] ❌ Connection error:", error?.message || error);
+  if (error?.message?.includes("transport")) {
+    console.warn("[Socket] Switching to polling transport...");
+  }
+});
+
+socket.on("error", (error) => {
+  console.error("[Socket] Socket error:", error);
 });
 
 /**

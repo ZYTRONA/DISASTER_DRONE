@@ -9,11 +9,11 @@ function RequestDetails({ request, onClose, onUpdateStatus }) {
   const statusOptions = ["Pending", "Assigned", "In Transit", "Delivered"];
 
   const statusColors = {
-    Pending: "#fbbf24",
-    Assigned: "#3b82f6",
-    "In Transit": "#8b5cf6",
-    Delivered: "#22c55e",
-    Urgent: "#ef4444",
+    Pending: "#d97706",
+    Assigned: "#0284c7",
+    "In Transit": "#7c3aed",
+    Delivered: "#10b981",
+    Urgent: "#dc2626",
   };
 
   return (

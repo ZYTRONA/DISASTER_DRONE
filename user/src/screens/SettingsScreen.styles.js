@@ -9,29 +9,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: THEME.spacing.md,
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: THEME.spacing.lg,
-    paddingVertical: THEME.spacing.md,
-    backgroundColor: Colors.primary,
-  },
-  backButton: {
-    fontSize: THEME.typography.size.lg,
-    fontWeight: fw(THEME.typography.weight.bold),
-    color: Colors.textInverse,
-  },
-  headerTitle: {
-    fontSize: THEME.typography.size.lg,
-    fontWeight: fw(THEME.typography.weight.bold),
-    color: Colors.textInverse,
-  },
   section: {
     marginHorizontal: THEME.spacing.lg,
     marginVertical: THEME.spacing.md,
@@ -58,8 +35,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   themeBtnActive: {
-    backgroundColor: Colors.blue,
-    borderColor: Colors.blue,
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   themeBtnText: {
     fontSize: THEME.typography.size.md,
@@ -70,15 +47,15 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
   },
   themeInfoCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: Colors.border,
     borderRadius: THEME.borderRadius.md,
     padding: THEME.spacing.md,
   },
   themeInfoText: {
     fontSize: THEME.typography.size.md,
-    color: '#000000',
+    color: Colors.textPrimary,
     fontWeight: fw(THEME.typography.weight.medium),
   },
   urlDisplay: {
@@ -117,7 +94,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'column',
     gap: THEME.spacing.sm,
-    ...THEME.shadow.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 2,
   },
   presetLabel: {
     fontSize: THEME.typography.size.md,

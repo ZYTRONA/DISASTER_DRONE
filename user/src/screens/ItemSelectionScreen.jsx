@@ -13,12 +13,14 @@ import {
   FlatList,
   ActivityIndicator,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useAppContext } from '../context/AppContext';
 import { Colors, THEME } from '../themes/colors';
+import { ModernHeader } from '../components/ModernHeader';
 import { FOOD_ITEMS, MEDICINE_ITEMS } from '../utils/constants';
 import { getCurrentLocation } from '../services/location';
 import { submitRequest } from '../services/api';
@@ -185,18 +187,13 @@ export default function ItemSelectionScreen(
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: category === 'Food' ? '#f59e0b' : '#ef4444' },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.pop()}>
-          <Text style={styles.backButton}>{'← Back'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{'Select items and quantities'}</Text>
-      </View>
+      <ModernHeader
+        title="Select items and quantities"
+        subtitle={`Category: ${category}`}
+        onBackPress={() => navigation.pop()}
+      />
 
       {/* Items List */}
       <FlatList

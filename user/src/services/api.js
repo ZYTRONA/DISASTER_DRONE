@@ -14,7 +14,10 @@ import { getBackendUrl, storeBackendUrl } from './storage';
 
 // Will be initialized on app startup
 let api = null;
-const REQUEST_TIMEOUT = process.env.EXPO_PUBLIC_TIMEOUT_MS || 10000;
+const REQUEST_TIMEOUT = parseInt(process.env.EXPO_PUBLIC_TIMEOUT_MS, 10) || 10000;
+const HEALTH_CHECK_TIMEOUT = 5000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
 
 /**
  * Initialize API with backend URL from environment or storage
@@ -67,16 +70,35 @@ export const initializeApi = async () => {
         return response;
       },
       async (error) => {
-        if (error.response?.status === 401) {
+        // Enhanced error diagnostics
+        const isNetworkError = !error.response;
+        const status = error.response?.status || 'No status';
+        const errorData = error.response?.data || error.message;
+        
+        if (isNetworkError) {
+          // Network error - server unreachable
+          const backendUrl = api.defaults.baseURL || 'unknown';
+          console.error(
+            '❌ API Network Error:',
+            {
+              message: error.message,
+              code: error.code,
+              backendUrl: backendUrl,
+              requestUrl: `${backendUrl}${error.config?.url || ''}`,
+              timeout: error.config?.timeout || 'default',
+              details: 'Cannot reach backend server. Check: 1) Backend running? 2) Correct IP/Port? 3) Network connection?'
+            }
+          );
+        } else if (status === 401) {
           // Unauthorized - clear token and notify app
           console.warn('[API] Unauthorized (401) - clearing auth token');
           await clearAuthToken();
-          // Could emit event here to redirect to login
         }
+        
         console.error(
           '❌ API Error:',
-          error.response?.data || error.message,
-          `(${error.response?.status || 'No status'})`
+          errorData,
+          `(${status})`
         );
         return Promise.reject(error);
       }
@@ -166,8 +188,72 @@ export const getApi = () => {
 };
 
 /**
- * ===== AUTHENTICATION HELPERS =====
+ * Check if backend is healthy (reachable)
+ * @returns {Promise<boolean>} True if backend is healthy
  */
+export const checkBackendHealth = async () => {
+  if (!api) {
+    console.warn('❌ API not initialized');
+    return false;
+  }
+
+  try {
+    const response = await axios.get(`${api.defaults.baseURL}/health`, {
+      timeout: HEALTH_CHECK_TIMEOUT,
+    });
+    console.log('✅ Backend health check passed');
+    return response.status === 200;
+  } catch (err) {
+    const errorMsg = err.message || 'Unknown error';
+    const backendUrl = api.defaults.baseURL || 'unknown';
+    console.error(
+      `❌ Backend health check failed (${backendUrl}/health)`,
+      {
+        error: errorMsg,
+        code: err.code,
+        suggestion: 'Make sure backend server is running and reachable at the configured URL'
+      }
+    );
+    return false;
+  }
+};
+
+/**
+ * Retry logic for failed requests
+ * @param {Function} requestFn - Function that makes the API request
+ * @param {number} maxRetries - Maximum number of retries
+ * @returns {Promise} Result of the request
+ */
+const retryRequest = async (requestFn, maxRetries = MAX_RETRIES) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📤 API Request attempt ${attempt}/${maxRetries}`);
+      const result = await requestFn();
+      return result;
+    } catch (err) {
+      lastError = err;
+      const isNetworkError = !err.response;
+      
+      if (isNetworkError && attempt < maxRetries) {
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(
+          `⚠️ Network error on attempt ${attempt}, retrying in ${delay}ms...`,
+          err.message
+        );
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else if (!isNetworkError) {
+        // Don't retry non-network errors (validation, auth, etc)
+        throw err;
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
+/**
 
 /**
  * Store JWT token in AsyncStorage
@@ -210,7 +296,7 @@ export const clearAuthToken = async () => {
  */
 
 /**
- * Submit new disaster relief request
+ * Submit new disaster relief request with retry logic
  */
 export const submitRequest = async ({
   resource,
@@ -219,16 +305,56 @@ export const submitRequest = async ({
   lat,
   lon,
 }) => {
-  const response = await getApi().post('/request', {
-    resource,
-    cart,
-    note,
-    lat,
-    lon,
-    urgency: 'Urgent',
-    status: 'Urgent',
-  });
-  return response.data;
+  try {
+    // Check backend health before submitting
+    const isHealthy = await checkBackendHealth();
+    if (!isHealthy) {
+      throw new Error(
+        'Backend server is not reachable. Check your network connection and ensure the backend is running at ' +
+        (getApi().defaults.baseURL || 'the configured URL')
+      );
+    }
+
+    // Make request with retry logic
+    const response = await retryRequest(async () => {
+      return getApi().post('/request', {
+        resource,
+        cart,
+        note,
+        lat,
+        lon,
+        urgency: 'Urgent',
+        status: 'Urgent',
+      });
+    });
+
+    console.log('✅ Request submitted successfully:', response.data);
+    return response.data;
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    const isNetworkError = err.code === 'ECONNABORTED' || 
+                           err.code === 'ENOTFOUND' || 
+                           err.message?.includes('Network') ||
+                           !err.response;
+    
+    if (isNetworkError) {
+      const backendUrl = getApi().defaults.baseURL || 'http://localhost:5000';
+      console.error('❌ Network Error Details:', {
+        url: backendUrl,
+        message: errorMsg,
+        code: err.code,
+        suggestion: `Cannot connect to ${backendUrl}. ` +
+                   'Please ensure: 1) Backend server is running, ' +
+                   '2) Correct IP address in .env, ' +
+                   '3) Network connection is active'
+      });
+      throw new Error(
+        `Network Error: Cannot reach backend at ${backendUrl}. Make sure the backend server is running.`
+      );
+    }
+    
+    throw err;
+  }
 };
 
 /**

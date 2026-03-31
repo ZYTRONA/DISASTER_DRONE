@@ -22,15 +22,15 @@ function StatCard({ title, value, icon: Icon, color, trend, subtext }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(6, 182, 212, 0.04))",
+        background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(8, 145, 178, 0.04))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(167, 139, 250, 0.2)",
+        border: "1px solid rgba(59, 130, 246, 0.15)",
         borderRadius: "16px",
         padding: "24px",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+        boxShadow: "0 10px 30px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         cursor: "pointer",
         position: "relative",
@@ -38,13 +38,13 @@ function StatCard({ title, value, icon: Icon, color, trend, subtext }) {
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-8px)";
-        e.currentTarget.style.boxShadow = "0 30px 80px rgba(167, 139, 250, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)";
-        e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.4)";
+        e.currentTarget.style.boxShadow = "0 20px 50px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)";
+        e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.25)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)";
-        e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.2)";
+        e.currentTarget.style.boxShadow = "0 10px 30px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)";
+        e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.15)";
       }}
     >
       {/* Gradient Accent */}
@@ -101,37 +101,37 @@ function RecentRequests({ requests }) {
   const recent = requests.slice(0, 8);
 
   const statusColors = {
-    Pending: "#fcd34d",
-    Assigned: "#60a5fa",
-    "In Transit": "#a78bfa",
-    Delivered: "#34d399",
-    UserConfirmed: "#34d399",
-    Urgent: "#f87171",
-    Critical: "#f87171",
+    Pending: "#d97706",
+    Assigned: "#0284c7",
+    "In Transit": "#7c3aed",
+    Delivered: "#10b981",
+    UserConfirmed: "#10b981",
+    Urgent: "#dc2626",
+    Critical: "#dc2626",
   };
 
   const getStatusGradient = (status) => {
     const gradients = {
-      Pending: "rgba(252, 211, 77, 0.15)",
-      Assigned: "rgba(96, 165, 250, 0.15)",
-      "In Transit": "rgba(167, 139, 250, 0.15)",
-      Delivered: "rgba(52, 211, 153, 0.15)",
-      UserConfirmed: "rgba(52, 211, 153, 0.15)",
-      Urgent: "rgba(248, 113, 113, 0.15)",
-      Critical: "rgba(248, 113, 113, 0.15)",
+      Pending: "rgba(217, 119, 6, 0.08)",
+      Assigned: "rgba(2, 132, 199, 0.08)",
+      "In Transit": "rgba(124, 58, 237, 0.08)",
+      Delivered: "rgba(16, 185, 129, 0.08)",
+      UserConfirmed: "rgba(16, 185, 129, 0.08)",
+      Urgent: "rgba(220, 38, 38, 0.08)",
+      Critical: "rgba(220, 38, 38, 0.08)",
     };
-    return gradients[status] || "rgba(124, 139, 201, 0.15)";
+    return gradients[status] || "rgba(59, 130, 246, 0.08)";
   };
 
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(167, 139, 250, 0.06), rgba(6, 182, 212, 0.02))",
+        background: "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(8, 145, 178, 0.02))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(167, 139, 250, 0.15)",
+        border: "1px solid rgba(59, 130, 246, 0.1)",
         borderRadius: "16px",
         overflow: "hidden",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -140,7 +140,7 @@ function RecentRequests({ requests }) {
       <div
         style={{
           padding: "20px 24px",
-          borderBottom: "1px solid rgba(167, 139, 250, 0.1)",
+          borderBottom: "1px solid rgba(59, 130, 246, 0.08)",
           fontSize: "14px",
           fontWeight: 800,
           color: "var(--text-primary)",
@@ -150,7 +150,7 @@ function RecentRequests({ requests }) {
           flexShrink: 0,
         }}
       >
-        <Clock size={18} color="#a78bfa" />
+        <Clock size={18} color="#7c3aed" />
         Active Requests
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
@@ -164,7 +164,7 @@ function RecentRequests({ requests }) {
                 padding: "12px",
                 marginBottom: "8px",
                 background: getStatusGradient(req.status),
-                border: `1px solid rgba(167, 139, 250, 0.1)`,
+                border: `1px solid rgba(59, 130, 246, 0.1)`,
                 borderRadius: "10px",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
@@ -173,12 +173,12 @@ function RecentRequests({ requests }) {
                 alignItems: "center",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = getStatusGradient(req.status).replace("0.15", "0.25");
-                e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.2)";
+                e.currentTarget.style.background = getStatusGradient(req.status).replace("0.08", "0.12");
+                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.2)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = getStatusGradient(req.status);
-                e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.1)";
+                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.1)";
               }}
             >
               <div style={{ flex: 1 }}>
@@ -197,7 +197,7 @@ function RecentRequests({ requests }) {
                   fontSize: "10px",
                   fontWeight: 700,
                   padding: "4px 10px",
-                  background: statusColors[req.status] || "#7c8bc9",
+                  background: statusColors[req.status] || "#3b82f6",
                   color: "#ffffff",
                   borderRadius: "6px",
                   whiteSpace: "nowrap",
@@ -218,16 +218,16 @@ function SystemStatus({ connected }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(167, 139, 250, 0.04))",
+        background: "linear-gradient(135deg, rgba(8, 145, 178, 0.06), rgba(124, 58, 237, 0.03))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(6, 182, 212, 0.15)",
+        border: "1px solid rgba(8, 145, 178, 0.1)",
         borderRadius: "16px",
         padding: "20px 24px",
-        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
       }}
     >
       <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "16px", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-        <Zap size={18} color="#06b6d4" />
+        <Zap size={18} color="#0891b2" />
         System Status
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -239,9 +239,9 @@ function SystemStatus({ connected }) {
         ].map((item) => {
           const IconComponent = item.icon;
           return (
-            <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px", background: "rgba(255, 255, 255, 0.02)", borderRadius: "8px", border: "1px solid rgba(167, 139, 250, 0.08)" }}>
+            <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px", background: "rgba(59, 130, 246, 0.03)", borderRadius: "8px", border: "1px solid rgba(59, 130, 246, 0.1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <IconComponent size={18} color="#a78bfa" />
+                <IconComponent size={18} color="#7c3aed" />
                 <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{item.name}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -250,12 +250,12 @@ function SystemStatus({ connected }) {
                     width: "10px",
                     height: "10px",
                     borderRadius: "50%",
-                    background: item.status ? "#34d399" : "#f87171",
-                    boxShadow: item.status ? "0 0 12px #34d399" : "0 0 12px #f87171",
+                    background: item.status ? "#10b981" : "#dc2626",
+                    boxShadow: item.status ? "0 0 12px #10b981" : "0 0 12px #dc2626",
                     animation: "pulse 2s infinite",
                   }}
                 />
-                <span style={{ fontSize: "11px", color: item.status ? "#34d399" : "#f87171", fontWeight: 700 }}>{item.status ? "Active" : "Down"}</span>
+                <span style={{ fontSize: "11px", color: item.status ? "#10b981" : "#dc2626", fontWeight: 700 }}>{item.status ? "Active" : "Down"}</span>
               </div>
             </div>
           );
@@ -302,8 +302,8 @@ export default function Dashboard() {
           style={{
             width: "48px",
             height: "48px",
-            border: "3px solid rgba(167, 139, 250, 0.2)",
-            borderTop: "3px solid #a78bfa",
+            border: "3px solid rgba(59, 130, 246, 0.2)",
+            borderTop: "3px solid #3b82f6",
             borderRadius: "50%",
             animation: "spin 1s linear infinite",
           }}

@@ -9,12 +9,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useAppContext } from '../context/AppContext';
-import { Colors } from '../themes/colors';
+import { Colors, THEME } from '../themes/colors';
+import { ModernHeader } from '../components/ModernHeader';
 import { TRACKING_STAGES, HELPLINES, FOOD_ITEMS, MEDICINE_ITEMS } from '../utils/constants';
 import { confirmReceipt } from '../services/api';
 import { onStatusUpdate, offStatusUpdate, getSocket } from '../services/socket';
@@ -161,6 +163,13 @@ export default function ConfirmationScreen(
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+      {/* Header */}
+      <ModernHeader
+        title="Request Tracking"
+        subtitle="Monitor your relief request"
+        onBackPress={() => navigation.pop()}
+      />
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
@@ -213,7 +222,7 @@ export default function ConfirmationScreen(
                   style={[
                     styles.qtyBadge,
                     {
-                      backgroundColor: category === 'Food' ? '#f59e0b' : '#ef4444',
+                      backgroundColor: category === 'Food' ? Colors.food : Colors.medicine,
                     },
                   ]}
                 >
@@ -320,7 +329,7 @@ export default function ConfirmationScreen(
                   <Text style={styles.helplineName}>{helpline.name}</Text>
                   <Text style={styles.helplinePhoneBtn}>{helpline.number}</Text>
                 </View>
-                <Ionicons name="call" size={18} color={Colors.blue} />
+                <Ionicons name="call" size={18} color={Colors.primary} />
               </TouchableOpacity>
             ))}
           </View>

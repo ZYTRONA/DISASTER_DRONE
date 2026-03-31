@@ -1,6 +1,6 @@
 /**
- * NDRF Mobile Theme - Premium Design System
- * Enhanced colors, spacing, and typography for premium UI/UX
+ * NDRF Mobile Theme - Modern Glassmorphism Design System
+ * Enhanced colors, spacing, typography, and glass effects for premium UI/UX
  */
 
 /**
@@ -11,73 +11,104 @@
 export const fw = (weight) => /** @type {any} */ (weight);
 
 export const Colors = {
-  // Premium brand colors - refined palette
-  primary: '#0f172a',      // Deep slate for authority
-  primaryLight: '#1e293b', // Light slate
-  primaryAccent: '#3b82f6', // Bright blue accent
+  // Modern Light Brand Colors
+  primary: '#2563eb',      // Vibrant blue
+  primaryLight: '#3b82f6', // Light blue
+  primaryAccent: '#0ea5e9', // Cyan accent
 
-  secondary: '#6366f1',    // Indigo
-  secondaryLight: '#818cf8', // Light indigo
+  secondary: '#7c3aed',    // Purple
+  secondaryLight: '#a78bfa', // Light purple
 
-  // Category colors with premium tones
+  // Modern Category Colors - Light Palette
   food: '#f59e0b',         // Warm amber
-  foodBg: '#fef3c7',       // Premium light amber
+  foodBg: '#fef3c7',       // Light amber background
   foodDark: '#d97706',     // Dark amber
   
-  medicine: '#ef4444',     // Vibrant red
-  medicineBg: '#fee2e2',   // Premium light red
+  medicine: '#ef4444',     // Red
+  medicineBg: '#fee2e2',   // Light red background
   medicineDark: '#dc2626', // Dark red
 
-  // Premium UI colors - glassmorphism ready
-  background: '#ffffff',   // Pure white background
-  surface: '#ffffff',      // Pure white surface
-  surfaceAlt: '#f1f5f9',   // Alt surface (light gray)
-  surfaceAlt2: '#e2e8f0',  // Darker alt
-  border: '#cbd5e1',       // Premium border color
-  borderLight: '#e2e8f0',  // Light border
+  // Modern Light UI Colors
+  background: '#f8f9fc',   // Light gray background
+  surface: '#ffffff',      // White surface
+  surfaceAlt: '#f1f5f9',   // Light gray alt
+  surfaceAlt2: '#e2e8f0',  // Medium gray alt
+  border: '#e2e8f0',       // Light border
+  borderLight: '#f1f5f9',  // Very light border
   borderFocus: '#3b82f6',  // Blue focus
 
-  // Premium text hierarchy
-  textPrimary: '#0f172a',      // Deep text
-  textSecondary: '#475569',    // Medium text
-  textMuted: '#94a3b8',        // Muted text
+  // Glassmorphism Colors - Transparent overlays
+  glassLight: 'rgba(255, 255, 255, 0.8)',      // Primary glass
+  glassDark: 'rgba(255, 255, 255, 0.6)',       // Secondary glass
+  glassExtraDark: 'rgba(255, 255, 255, 0.4)',  // Subtle glass
+  glassAccent: 'rgba(37, 99, 235, 0.1)',       // Blue tinted glass
+  glassPurple: 'rgba(124, 58, 237, 0.1)',      // Purple tinted glass
+
+  // Gradient Colors
+  gradientBlue: ['#3b82f6', '#0ea5e9'],        // Blue to cyan
+  gradientPurple: ['#7c3aed', '#a78bfa'],      // Purple gradient
+  gradientFood: ['#f59e0b', '#fbbf24'],        // Amber gradient
+  gradientMedicine: ['#ef4444', '#f87171'],    // Red gradient
+
+  // Modern Text Hierarchy - Light Mode
+  textPrimary: '#1e293b',      // Dark gray text
+  textSecondary: '#475569',    // Medium gray text
+  textMuted: '#94a3b8',        // Light gray text
   textInverse: '#ffffff',      // White text
   textLabel: '#64748b',        // Label text
 
-  // Premium accent colors
+  // Modern Accent Colors
   blue: '#3b82f6',
   blueDark: '#1e40af',
+  blueLight: '#dbeafe',
   cyan: '#06b6d4',
+  cyanLight: '#cffafe',
   green: '#10b981',
   greenDark: '#059669',
+  greenLight: '#d1fae5',
   yellow: '#eab308',
+  yellowLight: '#fef08a',
   orange: '#f97316',
-  red: '#dc2626',
+  orangeLight: '#fed7aa',
+  red: '#ef4444',
+  redLight: '#fecaca',
   purple: '#9333ea',
+  purpleLight: '#e9d5ff',
   pink: '#ec4899',
+  pinkLight: '#fbcfe8',
   indigo: '#4f46e5',
+  indigoLight: '#e0e7ff',
 
-  // Premium status colors
+  // Modern Status Colors
   success: '#10b981',
   successLight: '#d1fae5',
+  successBg: '#ecfdf5',
   warning: '#f59e0b',
   warningLight: '#fef3c7',
+  warningBg: '#fffbeb',
   error: '#ef4444',
-  errorLight: '#fee2e2',
+  errorLight: '#fecaca',
+  errorBg: '#fef2f2',
   info: '#3b82f6',
   infoLight: '#dbeafe',
+  infoBg: '#eff6ff',
 
-  // Helpline colors - emergency services
+  // Emergency Services Colors
   emergency: '#dc2626',
   emergencyLight: '#fee2e2',
+  emergencyBg: '#fef2f2',
   ndrf: '#1e40af',
   ndrfLight: '#dbeafe',
+  ndrfBg: '#eff6ff',
   flood: '#0369a1',
+  floodLight: '#cffafe',
   ambulance: '#10b981',
+  ambulanceLight: '#d1fae5',
   disaster: '#9333ea',
+  disasterLight: '#e9d5ff',
 
-  // Transparency & overlays
-  overlay: 'rgba(0, 0, 0, 0.5)',
+  // Transparency & Overlays
+  overlay: 'rgba(0, 0, 0, 0.3)',
   overlayLight: 'rgba(0, 0, 0, 0.1)',
   glass: 'rgba(255, 255, 255, 0.1)',
   glassDark: 'rgba(15, 23, 42, 0.1)',

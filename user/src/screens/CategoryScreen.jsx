@@ -1,5 +1,6 @@
 /**
- * CategoryScreen - Step 1: Choose Food or Medicine
+ * CategoryScreen - Step 1: Choose Food or Medicine with Modern UI
+ * Glassmorphism design with smooth animations and responsive layout
  */
 
 import React, { useState } from 'react';
@@ -14,13 +15,18 @@ import {
   StatusBar,
   Linking,
   Alert,
+  Animated,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
-import { THEME } from '../themes/colors';
+import { THEME, Colors } from '../themes/colors';
 import { CATEGORIES, FOOD_ITEMS, MEDICINE_ITEMS, HELPLINES, LANGUAGES } from '../utils/constants';
+import ModernHeader from '../components/ModernHeader';
+import GlassCard from '../components/GlassCard';
 import styles from './CategoryScreen.styles.js';
+import { useSlideInAnimation, useStaggeredAnimation, usePressAnimation } from '../utils/animationHooks';
 
 const { width } = Dimensions.get('window');
 
@@ -36,33 +42,14 @@ export default function CategoryScreen(
   const { chooseCategory } = useAppContext();
   const insets = useSafeAreaInsets();
   const [showLangModal, setShowLangModal] = useState(false);
-  const isLightMode = true;
 
-  const palette = {
-    screenBg: '#ffffff',
-    headerBg: '#2563eb',
-    headerText: '#ffffff',
-    headerSubText: 'rgba(255,255,255,0.78)',
-    controlBg: 'rgba(255,255,255,0.18)',
-    controlBorder: 'rgba(255,255,255,0.45)',
-    sectionTitle: '#000000',
-    helplineBg: '#ffffff',
-    helplineTitle: '#000000',
-    helplineSub: '#000000',
-    modalBg: '#ffffff',
-    modalText: '#000000',
-    modalBorder: '#e2e8f0',
-    modalActiveBg: '#f1f5f9',
-    modalActiveText: '#000000',
-    overlayBg: 'rgba(148,163,184,0.18)',
-    cardBorder: '#e2e8f0',
-    foodBg: '#ffffff',
-    medBg: '#ffffff',
-  };
+  // Animations
+  const { translateY, opacity } = useSlideInAnimation(40, 100);
+  const categoryAnimations = useStaggeredAnimation(CATEGORIES.length, 80);
+  const helplineAnimations = useStaggeredAnimation(HELPLINES.length, 60);
 
   /**
    * Handle category selection - Food or Medicine
-   * @param {any} categoryId
    */
   function handleCategorySelect(categoryId) {
     const items = categoryId === 'Food' ? FOOD_ITEMS : MEDICINE_ITEMS;
@@ -72,140 +59,100 @@ export default function CategoryScreen(
 
   /**
    * Handle language change
-   * @param {any} langCode
    */
   function handleLanguageChange(langCode) {
-    // Implementation for handling language change
     setShowLangModal(false);
   }
 
   /**
    * Handle emergency helpline call
-   * @param {any} helpline
    */
   function handleHelplineCall(helpline) {
     const phoneNumber = `tel:${helpline.number}`;
-    Linking.canOpenURL(phoneNumber).then((supported) => {
-      if (supported) {
-        Linking.openURL(phoneNumber);
-      } else {
-        Alert.alert(
-          'Call Not Supported',
-          `Cannot dial ${helpline.name} (${helpline.number}) on this device.`,
-          [{ text: 'OK' }]
-        );
-      }
-    }).catch((err) => {
-      Alert.alert('Error', `Failed to dial: ${err.message}`, [{ text: 'OK' }]);
-    });
+    Linking.canOpenURL(phoneNumber)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(phoneNumber);
+        } else {
+          Alert.alert('Call Not Supported', `Cannot dial ${helpline.name} (${helpline.number}) on this device.`, [
+            { text: 'OK' },
+          ]);
+        }
+      })
+      .catch((err) => {
+        Alert.alert('Error', `Failed to dial: ${err.message}`, [{ text: 'OK' }]);
+      });
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.screenBg }]} edges={['left', 'right', 'bottom']}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={palette.headerBg}
-        translucent={false}
-      />
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
+    <SafeAreaView style={[styles.container]} edges={['left', 'right', 'bottom']}>
+      <StatusBar barStyle="dark-content" translucent={true} backgroundColor="transparent" />
+
+      {/* Modern Header */}
+      <ModernHeader
+        subtitle="Emergency Relief India"
+        title="Quick Relief"
+        actions={[
           {
-            paddingTop: Math.max(insets.top, THEME.spacing.md),
-            backgroundColor: palette.headerBg,
+            icon: 'globe',
+            label: 'EN',
+            onPress: () => setShowLangModal(true),
+            testID: 'lang-button',
+          },
+          {
+            icon: 'settings',
+            onPress: () => navigation.push('Settings'),
+            testID: 'settings-button',
           },
         ]}
-      >
-        <View style={styles.headerContent}>
-          <Text style={[styles.headerSmall, { color: palette.headerSubText }]}>{'Emergency Relief India'}</Text>
-        </View>
-
-        {/* Language & Settings Buttons */}
-        <View style={[{ flexDirection: 'row', gap: THEME.spacing.sm },]}>
-          <TouchableOpacity
-            style={[styles.langButton, { backgroundColor: palette.controlBg, borderColor: palette.controlBorder }]}
-            onPress={() => setShowLangModal(true)}
-          >
-            <Ionicons name="globe" size={16} color={palette.headerText} style={{ marginRight: 4 }} />
-            <Text style={[styles.langButtonText, { color: palette.headerText }]}>{'EN'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.settingsButton, { backgroundColor: palette.controlBg, borderColor: palette.controlBorder }]}
-            onPress={() => navigation.push('Settings')}
-          >
-            <Ionicons name="settings" size={20} color={palette.headerText} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      />
 
       <ScrollView
-        style={[styles.content, { backgroundColor: isLightMode ? '#ffffff' : palette.screenBg }]}
-        contentContainerStyle={[styles.contentContainer, { backgroundColor: isLightMode ? '#ffffff' : palette.screenBg }]}
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
       >
-        {/* Category Cards */}
-        <View style={[styles.section,]}>
-          <Text style={[styles.sectionTitle, { color: palette.sectionTitle }]}>
-            {'CATEGORY'}
-          </Text>
+        {/* Category Cards Section */}
+        <Animated.View style={[styles.section, { opacity, transform: [{ translateY }] }]}>
+          <Text style={styles.sectionTitle}>Category</Text>
 
-          <View style={[styles.cardsContainer,]}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
+          <View style={styles.cardsContainer}>
+            {CATEGORIES.map((cat, index) => (
+              <Animated.View
                 key={cat.id}
                 style={[
-                  styles.categoryCard,
-                  {
-                    backgroundColor: '#ffffff',
-                    borderColor: '#e2e8f0',
-                  },
+                  { flex: 1, opacity: categoryAnimations[index] },
+                  { transform: [{ scale: categoryAnimations[index] }] },
                 ]}
-                onPress={() => handleCategorySelect(cat.id)}
               >
-                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                <View style={styles.categoryLabelWrap}>
-                  <Text style={[styles.categoryName, { color: '#000000' }]}>
-                    {cat.id === 'Food' ? 'Food' : 'Medicine'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                <CategoryCardItem
+                  category={cat}
+                  onPress={() => handleCategorySelect(cat.id)}
+                />
+              </Animated.View>
             ))}
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Emergency Helplines */}
-        <View style={[styles.section,]}>
-          <Text style={[styles.sectionTitle, { color: palette.sectionTitle }]}>
-            {'Emergency Helplines'}
-          </Text>
+        {/* Emergency Helplines Section */}
+        <Animated.View style={[styles.section, { opacity: Animated.add(opacity, -0.2) }]}>
+          <Text style={styles.sectionTitle}>Emergency Helplines</Text>
 
           <View style={styles.helplinesGrid}>
-            {HELPLINES.map((helpline) => (
-              <TouchableOpacity
+            {HELPLINES.map((helpline, index) => (
+              <Animated.View
                 key={helpline.name}
                 style={[
-                  styles.helplineCard,
-                  {
-                    borderLeftColor: helpline.color,
-                    backgroundColor: '#ffffff',
-                    borderColor: '#e2e8f0',
-                    borderWidth: 1,
-                  },
+                  { opacity: helplineAnimations[index] },
+                  { transform: [{ translateY: Animated.multiply(helplineAnimations[index], 20) }] },
                 ]}
-                onPress={() => handleHelplineCall(helpline)}
-                activeOpacity={0.7}
               >
-                <Text style={styles.helplineIcon}>{helpline.icon}</Text>
-                <View>
-                  <Text style={[styles.helplineName, { color: palette.helplineTitle }]}>{helpline.name}</Text>
-                  <Text style={[styles.helplineNumber, { color: palette.helplineSub }]}>{helpline.number}</Text>
-                </View>
-              </TouchableOpacity>
+                <HelplineCardItem helpline={helpline} onPress={() => handleHelplineCall(helpline)} />
+              </Animated.View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Language Modal */}
@@ -216,11 +163,12 @@ export default function CategoryScreen(
         onRequestClose={() => setShowLangModal(false)}
       >
         <TouchableOpacity
-          style={[styles.modalOverlay, { backgroundColor: palette.overlayBg }]}
+          style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowLangModal(false)}
         >
-          <View style={[styles.modalContent, { backgroundColor: palette.modalBg }]}>
+          <BlurView intensity={60} style={{ flex: 1 }} />
+          <View style={styles.modalContent}>
             <FlatList
               data={LANGUAGES}
               keyExtractor={(item) => item.code}
@@ -229,16 +177,14 @@ export default function CategoryScreen(
                 <TouchableOpacity
                   style={[
                     styles.languageOption,
-                    { borderBottomColor: palette.modalBorder },
-                    'en' === item.code && [styles.languageOptionActive, { backgroundColor: palette.modalActiveBg }],
+                    item.code === 'en' && styles.languageOptionActive,
                   ]}
                   onPress={() => handleLanguageChange(item.code)}
                 >
                   <Text
                     style={[
                       styles.languageOptionText,
-                      { color: palette.modalText },
-                      'en' === item.code && [styles.languageOptionTextActive, { color: palette.modalActiveText }],
+                      item.code === 'en' && styles.languageOptionTextActive,
                     ]}
                   >
                     {item.name}
@@ -252,6 +198,201 @@ export default function CategoryScreen(
     </SafeAreaView>
   );
 }
+
+/**
+ * Category Card Item Component - Enhanced Glassmorphism with Vibrant Premium Colors
+ */
+function CategoryCardItem({ category, onPress }) {
+  const { scale, onPressIn, onPressOut } = usePressAnimation();
+  
+  // Premium vibrant colors - more saturated
+  const bgColor =
+    category.id === 'Food'
+      ? 'rgba(255, 193, 7, 0.7)'      // More vibrant gold
+      : 'rgba(244, 67, 54, 0.7)';     // More vibrant red
+  
+  const accentColor =
+    category.id === 'Food' ? '#FFC107' : '#F44336';  // Brighter accent
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+    >
+      <Animated.View
+        style={[
+          styles.categoryCard,
+          { transform: [{ scale }] },
+        ]}
+      >
+        {/* Base vibrant gradient-like background */}
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: bgColor,
+          }}
+        />
+        
+        {/* Premium glass overlay */}
+        <BlurView intensity={35} style={StyleSheet.absoluteFill}>
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            }}
+          />
+        </BlurView>
+
+        <View
+          style={[
+            styles.categoryCardInner,
+            { 
+              borderColor: 'rgba(255, 255, 255, 0.6)',
+              borderWidth: 1.5,
+              zIndex: 10,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.categoryIcon,
+              { 
+                fontSize: 56,
+                color: accentColor,
+                textShadowColor: 'rgba(0, 0, 0, 0.25)',
+                textShadowOffset: { width: 0, height: 3 },
+                textShadowRadius: 6,
+                marginBottom: 8,
+              },
+            ]}
+          >
+            {category.icon}
+          </Text>
+          <Text style={[
+            styles.categoryName,
+            {
+              fontSize: 22,
+              fontWeight: '800',
+              color: '#FFFFFF',
+              textShadowColor: 'rgba(0, 0, 0, 0.2)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
+            },
+          ]}>
+            {category.id === 'Food' ? 'Food' : 'Medicine'}
+          </Text>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * Helpline Card Item Component - Enhanced Glassmorphism with Premium Colors
+ */
+function HelplineCardItem({ helpline, onPress }) {
+  const { scale, onPressIn, onPressOut } = usePressAnimation();
+  
+  // Convert hex color to RGB with maximum vibrancy for premium look
+  const rgbValues = helpline.color.substring(1).match(/.{1,2}/g).map(x => parseInt(x, 16)).join(', ');
+  const bgColor = `rgba(${rgbValues}, 0.80)`; // Increased to 0.80 for maximum vibrant colors
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+    >
+      <Animated.View
+        style={[
+          styles.helplineCard,
+          { transform: [{ scale }] },
+        ]}
+      >
+        {/* Premium vibrant background - maximum color saturation */}
+        <View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: bgColor,
+          }}
+        />
+
+        {/* Premium glass overlay - very subtle */}
+        <BlurView intensity={25} style={StyleSheet.absoluteFill}>
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            }}
+          />
+        </BlurView>
+
+        <View
+          style={[
+            styles.helplineCardInner,
+            { 
+              borderColor: 'rgba(255, 255, 255, 0.6)',
+              borderWidth: 1.5,
+              zIndex: 0,
+            },
+          ]}
+        />
+
+        <Text
+          style={[
+            styles.helplineIcon,
+            { 
+              fontSize: 36,
+              color: helpline.color,
+              textShadowColor: 'rgba(0, 0, 0, 0.3)',
+              textShadowOffset: { width: 0, height: 3 },
+              textShadowRadius: 6,
+              marginRight: 12,
+            },
+          ]}
+        >
+          {helpline.icon}
+        </Text>
+
+        <View style={[
+          styles.helplineContent,
+          {
+            zIndex: 10,
+            flex: 1,
+          },
+        ]}>
+          <Text style={[
+            styles.helplineName,
+            {
+              fontSize: 18,
+              fontWeight: '800',
+              color: '#FFFFFF',
+              textShadowColor: 'rgba(0, 0, 0, 0.25)',
+              textShadowOffset: { width: 0, height: 2 },
+              textShadowRadius: 4,
+            },
+          ]}>{helpline.name}</Text>
+          <Text style={[
+            styles.helplineNumber,
+            {
+              fontSize: 14,
+              fontWeight: '600',
+              color: 'rgba(255, 255, 255, 0.95)',
+              textShadowColor: 'rgba(0, 0, 0, 0.15)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 2,
+            },
+          ]}>{helpline.number}</Text>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+import { StyleSheet } from 'react-native';
 
 
 

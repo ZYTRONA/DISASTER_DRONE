@@ -6,24 +6,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    paddingHorizontal: THEME.spacing.lg,
-    paddingVertical: THEME.spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing.md,
-  },
-  backButton: {
-    fontSize: THEME.typography.size.lg,
-    fontWeight: fw(THEME.typography.weight.bold),
-    color: Colors.textInverse,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: THEME.typography.size.lg,
-    fontWeight: fw(THEME.typography.weight.bold),
-    color: Colors.textInverse,
-  },
   listContent: {
     paddingHorizontal: THEME.spacing.lg,
     paddingVertical: THEME.spacing.md,
@@ -36,7 +18,11 @@ const styles = StyleSheet.create({
     borderRadius: THEME.borderRadius.md,
     padding: THEME.spacing.md,
     marginBottom: THEME.spacing.md,
-    ...THEME.shadow.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 2,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -71,12 +57,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: THEME.borderRadius.sm,
-    backgroundColor: Colors.blue,
+    backgroundColor: Colors.primary,
   },
   stepperBtnText: {
     fontSize: THEME.typography.size.lg,
     fontWeight: fw(THEME.typography.weight.bold),
-    color: Colors.textInverse,
+    color: Colors.surface,
   },
   stepperValue: {
     fontSize: THEME.typography.size.md,
@@ -126,7 +112,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   submitBtn: {
-    backgroundColor: Colors.blue,
+    backgroundColor: Colors.primary,
     paddingHorizontal: THEME.spacing.lg,
     paddingVertical: THEME.spacing.md,
     borderRadius: THEME.borderRadius.md,
@@ -138,7 +124,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitBtnText: {
-    color: Colors.textInverse,
+    color: Colors.surface,
     fontSize: THEME.typography.size.md,
     fontWeight: fw(THEME.typography.weight.bold),
   },

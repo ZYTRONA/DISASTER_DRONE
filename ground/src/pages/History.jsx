@@ -11,23 +11,23 @@ export default function History() {
   const [selectedRequest, setSelectedRequest] = useState(null);
 
   const statusColors = {
-    Pending: "#fcd34d",
-    Assigned: "#60a5fa",
-    "In Transit": "#a78bfa",
-    Delivered: "#34d399",
-    UserConfirmed: "#34d399",
-    Urgent: "#f87171",
-    Critical: "#f87171",
+    Pending: "#d97706",
+    Assigned: "#0284c7",
+    "In Transit": "#7c3aed",
+    Delivered: "#10b981",
+    UserConfirmed: "#10b981",
+    Urgent: "#dc2626",
+    Critical: "#dc2626",
   };
 
   const statusBgGradients = {
-    Pending: "rgba(252, 211, 77, 0.12)",
-    Assigned: "rgba(96, 165, 250, 0.12)",
-    "In Transit": "rgba(167, 139, 250, 0.12)",
-    Delivered: "rgba(52, 211, 153, 0.12)",
-    UserConfirmed: "rgba(52, 211, 153, 0.12)",
-    Urgent: "rgba(248, 113, 113, 0.12)",
-    Critical: "rgba(248, 113, 113, 0.12)",
+    Pending: "rgba(217, 119, 6, 0.08)",
+    Assigned: "rgba(2, 132, 199, 0.08)",
+    "In Transit": "rgba(124, 58, 237, 0.08)",
+    Delivered: "rgba(16, 185, 129, 0.08)",
+    UserConfirmed: "rgba(16, 185, 129, 0.08)",
+    Urgent: "rgba(220, 38, 38, 0.08)",
+    Critical: "rgba(220, 38, 38, 0.08)",
   };
 
   // Filter and sort requests
@@ -63,8 +63,8 @@ export default function History() {
           style={{
             width: "48px",
             height: "48px",
-            border: "3px solid rgba(167, 139, 250, 0.2)",
-            borderTop: "3px solid #a78bfa",
+            border: "3px solid rgba(59, 130, 246, 0.2)",
+            borderTop: "3px solid #3b82f6",
             borderRadius: "50%",
             animation: "spin 1s linear infinite",
           }}
@@ -79,11 +79,11 @@ export default function History() {
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <Calendar size={32} color="#a78bfa" />
+          <Calendar size={32} color="#7c3aed" />
           Request History
         </h1>
         <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#34d399" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#f87171" }}>{pendingCount}</strong> pending
+          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#10b981" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#dc2626" }}>{pendingCount}</strong> pending
         </p>
       </div>
 
@@ -97,23 +97,23 @@ export default function History() {
         }}
       >
         {[
-          { label: "Total Requests", value: requests.length, Icon: Package, color: "#60a5fa" },
-          { label: "Completed", value: deliveredCount, Icon: CheckCircle, color: "#34d399" },
-          { label: "In Progress", value: pendingCount, Icon: Hourglass, color: "#fcd34d" },
-          { label: "Success Rate", value: requests.length > 0 ? Math.round((deliveredCount / requests.length) * 100) + "%" : "0%", Icon: BarChart3, color: "#a78bfa" },
+          { label: "Total Requests", value: requests.length, Icon: Package, color: "#0284c7" },
+          { label: "Completed", value: deliveredCount, Icon: CheckCircle, color: "#10b981" },
+          { label: "In Progress", value: pendingCount, Icon: Hourglass, color: "#d97706" },
+          { label: "Success Rate", value: requests.length > 0 ? Math.round((deliveredCount / requests.length) * 100) + "%" : "0%", Icon: BarChart3, color: "#7c3aed" },
         ].map((stat, idx) => (
           <div
             key={idx}
             style={{
-              background: "linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(6, 182, 212, 0.04))",
+              background: "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(8, 145, 178, 0.03))",
               backdropFilter: "blur(20px)",
-              border: "1px solid rgba(167, 139, 250, 0.15)",
+              border: "1px solid rgba(59, 130, 246, 0.1)",
               borderRadius: "12px",
               padding: "16px",
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.2)",
+              boxShadow: "0 5px 15px rgba(0, 0, 0, 0.08)",
               transition: "all 0.3s ease",
             }}
           >
@@ -154,9 +154,9 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            background: "linear-gradient(135deg, rgba(167, 139, 250, 0.06), rgba(6, 182, 212, 0.02))",
+            background: "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(8, 145, 178, 0.02))",
             backdropFilter: "blur(20px)",
-            border: "1px solid rgba(167, 139, 250, 0.15)",
+            border: "1px solid rgba(59, 130, 246, 0.1)",
             borderRadius: "10px",
             padding: "12px 16px",
             color: "var(--text-muted)",
@@ -184,9 +184,9 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(167, 139, 250, 0.06), rgba(6, 182, 212, 0.02))",
+            background: "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(8, 145, 178, 0.02))",
             backdropFilter: "blur(20px)",
-            border: "1px solid rgba(167, 139, 250, 0.15)",
+            border: "1px solid rgba(59, 130, 246, 0.1)",
             borderRadius: "10px",
             padding: "8px 14px",
             color: "var(--text-muted)",

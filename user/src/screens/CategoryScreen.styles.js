@@ -1,90 +1,22 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { Colors, THEME } from '../themes/colors';
+
+const { width } = Dimensions.get('window');
+const isMobile = width < 600;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    backgroundColor: Colors.error,
-    paddingHorizontal: THEME.spacing.lg,
-    paddingBottom: THEME.spacing.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerSmall: {
-    fontSize: THEME.typography.size.xs,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,.65)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 18,
-    marginBottom: 6,
-  },
-  headerTitle: {
-    fontSize: THEME.typography.size.h2,
-    fontWeight: '900',
-    color: Colors.textInverse,
-    marginBottom: 4,
-  },
-  langButton: {
-    backgroundColor: 'rgba(255,255,255,.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,.35)',
-    borderRadius: THEME.borderRadius.md,
-    paddingHorizontal: THEME.spacing.md,
-    paddingVertical: THEME.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  langButtonText: {
-    color: Colors.textInverse,
-    fontSize: THEME.typography.size.sm,
-    fontWeight: '700',
-  },
-  settingsButton: {
-    backgroundColor: 'rgba(255,255,255,.15)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,.35)',
-    borderRadius: THEME.borderRadius.md,
-    paddingHorizontal: THEME.spacing.md,
-    paddingVertical: THEME.spacing.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  themeGroup: {
-    borderWidth: 1.5,
-    borderRadius: THEME.borderRadius.md,
-    flexDirection: 'row',
-    padding: 2,
-  },
-  themeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: THEME.borderRadius.sm,
-  },
-  themeOptionActive: {
-    backgroundColor: '#ffffff',
-  },
-  themeText: {
-    fontSize: THEME.typography.size.xs,
-    fontWeight: '700',
-  },
   content: {
     flex: 1,
     paddingHorizontal: THEME.spacing.lg,
     paddingTop: THEME.spacing.lg,
+    backgroundColor: Colors.background,
   },
   contentContainer: {
-    paddingBottom: 20,
+    paddingBottom: 32,
     minHeight: '100%',
   },
   section: {
@@ -93,71 +25,111 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: THEME.typography.size.sm,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: THEME.spacing.md,
+    marginBottom: THEME.spacing.lg,
   },
+  // Card Containers - Glass Morphism
   cardsContainer: {
     flexDirection: 'row',
     gap: THEME.spacing.md,
+    marginBottom: THEME.spacing.lg,
   },
   categoryCard: {
     flex: 1,
-    borderWidth: 2,
-    borderRadius: THEME.borderRadius.lg,
-    padding: THEME.spacing.md,
-    flexDirection: 'row',
+    borderRadius: THEME.borderRadius.xl,
+    overflow: 'hidden',
+    height: 160,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: THEME.spacing.md,
+  },
+  categoryCardInner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: THEME.borderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
   categoryIcon: {
-    fontSize: 32,
+    fontSize: 48,
+    marginBottom: THEME.spacing.sm,
   },
   categoryName: {
     fontSize: THEME.typography.size.lg,
     fontWeight: '700',
+    color: Colors.textInverse,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  categoryLabelWrap: {
-    justifyContent: 'center',
-  },
+  // Helplines Section
   helplinesGrid: {
     gap: THEME.spacing.md,
   },
   helplineCard: {
-    borderLeftWidth: 4,
-    borderRadius: THEME.borderRadius.md,
-    backgroundColor: Colors.surface,
-    padding: THEME.spacing.md,
+    borderRadius: THEME.borderRadius.lg,
+    overflow: 'hidden',
+    paddingHorizontal: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing.md,
-    ...THEME.shadow.sm,
+    gap: THEME.spacing.lg,
+    marginBottom: THEME.spacing.md,
+  },
+  helplineCardInner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: THEME.borderRadius.lg,
+    zIndex: 0,
+  },
+  helplineContent: {
+    flex: 1,
+    zIndex: 1,
   },
   helplineIcon: {
-    fontSize: 20,
+    fontSize: 24,
+    zIndex: 1,
   },
   helplineName: {
     fontSize: THEME.typography.size.md,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: Colors.textInverse,
     marginBottom: 2,
   },
   helplineNumber: {
     fontSize: THEME.typography.size.sm,
-    color: Colors.textSecondary,
-    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '600',
   },
+  // Modal Styles - Glass Morphism
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderTopLeftRadius: THEME.borderRadius.xl,
     borderTopRightRadius: THEME.borderRadius.xl,
     maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   languageOption: {
     paddingHorizontal: THEME.spacing.lg,
@@ -166,7 +138,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   languageOptionActive: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.glassAccent,
   },
   languageOptionText: {
     fontSize: THEME.typography.size.lg,
@@ -174,7 +146,15 @@ const styles = StyleSheet.create({
   },
   languageOptionTextActive: {
     fontWeight: '700',
-    color: Colors.blue,
+    color: Colors.primary,
+  },
+  // Responsive Styles
+  responsiveCardContainer: {
+    marginHorizontal: isMobile ? THEME.spacing.sm : THEME.spacing.lg,
+    marginVertical: isMobile ? THEME.spacing.sm : THEME.spacing.md,
+  },
+  responsivePadding: {
+    padding: isMobile ? THEME.spacing.md : THEME.spacing.lg,
   },
 });
 
