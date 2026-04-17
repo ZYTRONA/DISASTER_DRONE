@@ -87,3 +87,50 @@ export const checkLocationPermission = async () => {
     return false;
   }
 };
+
+/**
+ * Check if location services are enabled on the device
+ * Returns true if GPS/Location is ON, false if OFF
+ */
+export const checkLocationServicesEnabled = async () => {
+  try {
+    const isEnabled = await Location.hasServicesEnabledAsync();
+    console.log(isEnabled ? '✅ Location services enabled' : '❌ Location services disabled');
+    return isEnabled;
+  } catch (err) {
+    console.error('❌ Location services check error:', err);
+    return false;
+  }
+};
+
+/**
+ * Request location permission upfront (at app startup)
+ * Returns true if permission is granted, false otherwise
+ */
+export const requestLocationPermission = async () => {
+  try {
+    // First check if services are enabled
+    const isEnabled = await Location.hasServicesEnabledAsync();
+    if (!isEnabled) {
+      throw new Error('Location services are disabled. Please turn on GPS/location in your device settings.');
+    }
+
+    // Request permission
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status === 'granted') {
+      console.log('✅ Location permission granted');
+      return true;
+    } else if (status === 'denied') {
+      console.warn('⚠️ Location permission denied by user');
+      return false;
+    } else {
+      console.warn('⚠️ Location permission status:', status);
+      return false;
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('❌ Permission request error:', message);
+    throw err;
+  }
+};

@@ -49,7 +49,30 @@ function AppContent() {
 export default function App() {
   return (
     <RequestsProvider>
-      <Toaster position="bottom-right" />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(249, 244, 233, 0.94))",
+            color: "#1f2f3d",
+            border: "1px solid rgba(217, 95, 58, 0.24)",
+            boxShadow: "0 14px 30px rgba(31, 47, 61, 0.14)",
+            fontFamily: "Manrope, sans-serif",
+          },
+          success: {
+            iconTheme: {
+              primary: "#2f9e73",
+              secondary: "#ffffff",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#d94a3f",
+              secondary: "#ffffff",
+            },
+          },
+        }}
+      />
       <AppContent />
     </RequestsProvider>
   );

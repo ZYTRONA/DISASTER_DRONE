@@ -22,15 +22,15 @@ function StatCard({ title, value, icon: Icon, color, trend, subtext }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(8, 145, 178, 0.04))",
+        background: "linear-gradient(135deg, rgba(47, 143, 182, 0.08), rgba(29, 106, 135, 0.04))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(59, 130, 246, 0.15)",
+        border: "1px solid rgba(47, 143, 182, 0.15)",
         borderRadius: "16px",
         padding: "24px",
         display: "flex",
         flexDirection: "column",
         gap: "16px",
-        boxShadow: "0 10px 30px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+        boxShadow: "0 10px 30px rgba(47, 143, 182, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         cursor: "pointer",
         position: "relative",
@@ -38,13 +38,13 @@ function StatCard({ title, value, icon: Icon, color, trend, subtext }) {
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-8px)";
-        e.currentTarget.style.boxShadow = "0 20px 50px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)";
-        e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.25)";
+        e.currentTarget.style.boxShadow = "0 20px 50px rgba(47, 143, 182, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)";
+        e.currentTarget.style.borderColor = "rgba(47, 143, 182, 0.25)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 10px 30px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)";
-        e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.15)";
+        e.currentTarget.style.boxShadow = "0 10px 30px rgba(47, 143, 182, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)";
+        e.currentTarget.style.borderColor = "rgba(47, 143, 182, 0.15)";
       }}
     >
       {/* Gradient Accent */}
@@ -101,34 +101,34 @@ function RecentRequests({ requests }) {
   const recent = requests.slice(0, 8);
 
   const statusColors = {
-    Pending: "#d97706",
-    Assigned: "#0284c7",
-    "In Transit": "#7c3aed",
-    Delivered: "#10b981",
-    UserConfirmed: "#10b981",
-    Urgent: "#dc2626",
-    Critical: "#dc2626",
+    Pending: "#d9a441",
+    Assigned: "#247b9f",
+    "In Transit": "#b84b2a",
+    Delivered: "#2f9e73",
+    UserConfirmed: "#2f9e73",
+    Urgent: "#ba3a32",
+    Critical: "#ba3a32",
   };
 
   const getStatusGradient = (status) => {
     const gradients = {
-      Pending: "rgba(217, 119, 6, 0.08)",
-      Assigned: "rgba(2, 132, 199, 0.08)",
-      "In Transit": "rgba(124, 58, 237, 0.08)",
-      Delivered: "rgba(16, 185, 129, 0.08)",
-      UserConfirmed: "rgba(16, 185, 129, 0.08)",
-      Urgent: "rgba(220, 38, 38, 0.08)",
-      Critical: "rgba(220, 38, 38, 0.08)",
+      Pending: "rgba(217, 164, 65, 0.08)",
+      Assigned: "rgba(47, 143, 182, 0.08)",
+      "In Transit": "rgba(217, 95, 58, 0.08)",
+      Delivered: "rgba(47, 158, 115, 0.08)",
+      UserConfirmed: "rgba(47, 158, 115, 0.08)",
+      Urgent: "rgba(217, 74, 63, 0.08)",
+      Critical: "rgba(217, 74, 63, 0.08)",
     };
-    return gradients[status] || "rgba(59, 130, 246, 0.08)";
+    return gradients[status] || "rgba(47, 143, 182, 0.08)";
   };
 
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(8, 145, 178, 0.02))",
+        background: "linear-gradient(135deg, rgba(47, 143, 182, 0.06), rgba(29, 106, 135, 0.02))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(59, 130, 246, 0.1)",
+        border: "1px solid rgba(47, 143, 182, 0.1)",
         borderRadius: "16px",
         overflow: "hidden",
         boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
@@ -140,7 +140,7 @@ function RecentRequests({ requests }) {
       <div
         style={{
           padding: "20px 24px",
-          borderBottom: "1px solid rgba(59, 130, 246, 0.08)",
+          borderBottom: "1px solid rgba(47, 143, 182, 0.08)",
           fontSize: "14px",
           fontWeight: 800,
           color: "var(--text-primary)",
@@ -150,7 +150,7 @@ function RecentRequests({ requests }) {
           flexShrink: 0,
         }}
       >
-        <Clock size={18} color="#7c3aed" />
+        <Clock size={18} color="#b84b2a" />
         Active Requests
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
@@ -164,7 +164,7 @@ function RecentRequests({ requests }) {
                 padding: "12px",
                 marginBottom: "8px",
                 background: getStatusGradient(req.status),
-                border: `1px solid rgba(59, 130, 246, 0.1)`,
+                border: `1px solid rgba(47, 143, 182, 0.1)`,
                 borderRadius: "10px",
                 cursor: "pointer",
                 transition: "all 0.2s ease",
@@ -174,11 +174,11 @@ function RecentRequests({ requests }) {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = getStatusGradient(req.status).replace("0.08", "0.12");
-                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.2)";
+                e.currentTarget.style.borderColor = "rgba(47, 143, 182, 0.2)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = getStatusGradient(req.status);
-                e.currentTarget.style.borderColor = "rgba(59, 130, 246, 0.1)";
+                e.currentTarget.style.borderColor = "rgba(47, 143, 182, 0.1)";
               }}
             >
               <div style={{ flex: 1 }}>
@@ -197,7 +197,7 @@ function RecentRequests({ requests }) {
                   fontSize: "10px",
                   fontWeight: 700,
                   padding: "4px 10px",
-                  background: statusColors[req.status] || "#3b82f6",
+                  background: statusColors[req.status] || "#2f8fb6",
                   color: "#ffffff",
                   borderRadius: "6px",
                   whiteSpace: "nowrap",
@@ -218,16 +218,16 @@ function SystemStatus({ connected }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, rgba(8, 145, 178, 0.06), rgba(124, 58, 237, 0.03))",
+        background: "linear-gradient(135deg, rgba(29, 106, 135, 0.06), rgba(217, 95, 58, 0.03))",
         backdropFilter: "blur(20px)",
-        border: "1px solid rgba(8, 145, 178, 0.1)",
+        border: "1px solid rgba(29, 106, 135, 0.1)",
         borderRadius: "16px",
         padding: "20px 24px",
         boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
       }}
     >
       <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "16px", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-        <Zap size={18} color="#0891b2" />
+        <Zap size={18} color="#1d6a87" />
         System Status
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -239,9 +239,9 @@ function SystemStatus({ connected }) {
         ].map((item) => {
           const IconComponent = item.icon;
           return (
-            <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px", background: "rgba(59, 130, 246, 0.03)", borderRadius: "8px", border: "1px solid rgba(59, 130, 246, 0.1)" }}>
+            <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px", background: "rgba(47, 143, 182, 0.03)", borderRadius: "8px", border: "1px solid rgba(47, 143, 182, 0.1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <IconComponent size={18} color="#7c3aed" />
+                <IconComponent size={18} color="#b84b2a" />
                 <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{item.name}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -250,12 +250,12 @@ function SystemStatus({ connected }) {
                     width: "10px",
                     height: "10px",
                     borderRadius: "50%",
-                    background: item.status ? "#10b981" : "#dc2626",
-                    boxShadow: item.status ? "0 0 12px #10b981" : "0 0 12px #dc2626",
+                    background: item.status ? "#2f9e73" : "#ba3a32",
+                    boxShadow: item.status ? "0 0 12px #2f9e73" : "0 0 12px #ba3a32",
                     animation: "pulse 2s infinite",
                   }}
                 />
-                <span style={{ fontSize: "11px", color: item.status ? "#10b981" : "#dc2626", fontWeight: 700 }}>{item.status ? "Active" : "Down"}</span>
+                <span style={{ fontSize: "11px", color: item.status ? "#2f9e73" : "#ba3a32", fontWeight: 700 }}>{item.status ? "Active" : "Down"}</span>
               </div>
             </div>
           );
@@ -302,8 +302,8 @@ export default function Dashboard() {
           style={{
             width: "48px",
             height: "48px",
-            border: "3px solid rgba(59, 130, 246, 0.2)",
-            borderTop: "3px solid #3b82f6",
+            border: "3px solid rgba(47, 143, 182, 0.2)",
+            borderTop: "3px solid #2f8fb6",
             borderRadius: "50%",
             animation: "spin 1s linear infinite",
           }}
@@ -314,7 +314,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ padding: "32px", overflowY: "auto", height: "100vh", background: "var(--bg-primary)" }}>
+    <div style={{ padding: "32px", overflowY: "auto", height: "100%", background: "var(--bg-primary)" }}>
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "8px" }}>Dashboard</h1>
@@ -323,10 +323,10 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px", marginBottom: "32px" }}>
-        <StatCard title="Total Requests" value={stats.total} icon={Package} color="#60a5fa" trend={12} subtext="Across all operations" />
-        <StatCard title="Active Requests" value={stats.active} icon={Activity} color="#fcd34d" trend={-5} subtext="Pending completion" />
-        <StatCard title="Delivered" value={stats.delivered} icon={CheckCircle2} color="#34d399" trend={18} subtext="Successfully completed" />
-        <StatCard title="Urgent" value={stats.urgent} icon={AlertTriangle} color="#f87171" subtext="Require immediate attention" />
+        <StatCard title="Total Requests" value={stats.total} icon={Package} color="#2f8fb6" trend={12} subtext="Across all operations" />
+        <StatCard title="Active Requests" value={stats.active} icon={Activity} color="#d9a441" trend={-5} subtext="Pending completion" />
+        <StatCard title="Delivered" value={stats.delivered} icon={CheckCircle2} color="#2f9e73" trend={18} subtext="Successfully completed" />
+        <StatCard title="Urgent" value={stats.urgent} icon={AlertTriangle} color="#d94a3f" subtext="Require immediate attention" />
       </div>
 
       {/* Main Grid */}

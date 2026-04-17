@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onStatusUpdate, offStatusUpdate } from '../services/socket';
+import { submitRequest as submitRequestAPI } from '../services/api';
 
 export const AppContext = React.createContext();
 
@@ -129,18 +130,69 @@ export function AppProvider({ children }) {
     try {
       const entry = {
         refId: newRefId,
+        dbId: newDbId,
         resource: category,
         note: itemsSummary,
         timestamp: new Date().toISOString(),
       };
 
-      const updated = [entry, ...recentRequests].slice(0, 5);
+      const saved = await AsyncStorage.getItem('ndrf_recent');
+      const existing = saved ? JSON.parse(saved) : [];
+      const deduped = existing.filter((item) => item.refId !== newRefId);
+      const updated = [entry, ...deduped].slice(0, 20);
       await AsyncStorage.setItem('ndrf_recent', JSON.stringify(updated));
       setRecentRequests(updated);
     } catch (err) {
       console.error('Failed to save recent request:', err);
     }
   }, [category]);
+
+  // Submit new request to backend
+  const submitRequest = useCallback(async (requestData) => {
+    try {
+      setLoading(true);
+      const { resource, urgency, name, people, location, notes } = requestData;
+      
+      // Transform request data to API format
+      const payload = {
+        resource: resource || 'General',
+        cart: {
+          items_count: people || 1,
+          notes: `${name} - ${notes || 'No additional notes'}`,
+        },
+        note: `${name} requested ${resource} for ${people} people${notes ? ': ' + notes : ''}`,
+        lat: location?.lat || 0,
+        lon: location?.lon || 0,
+      };
+
+      console.log('📤 Submitting request:', payload);
+      const response = await submitRequestAPI(payload);
+      
+      // Store the refId and dbId from response
+      if (response?.refId && response?.id) {
+        await setRequest(response.refId, response.id, payload.note);
+      }
+      
+      setStatusMsg({
+        type: 'success',
+        text: 'Request submitted successfully!',
+      });
+      
+      setLoading(false);
+      return response;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to submit request';
+      console.error('❌ Submit request error:', errorMsg);
+      
+      setStatusMsg({
+        type: 'error',
+        text: errorMsg,
+      });
+      
+      setLoading(false);
+      throw err;
+    }
+  }, [setRequest]);
 
   const value = {
     // Category & Cart
@@ -156,6 +208,7 @@ export function AppProvider({ children }) {
     dbId,
     trackStage,
     setRequest,
+    submitRequest,
     setTrackStage,
 
     // Recent requests

@@ -1,125 +1,83 @@
 /**
- * NDRF Mobile Theme - Modern Glassmorphism Design System
- * Enhanced colors, spacing, typography, and glass effects for premium UI/UX
+ * NDRF Mobile Theme - Modern Light Design System for Disaster Relief
+ * Light theme with modern vibrant colors, clean SVG icons, smooth animations
  */
 
-/**
- * Type safe fontWeight helper to bypass strict TypeScript TextStyle checks
- * @param {string | number} weight - Font weight value
- * @returns {any} Font weight value with type assertion
- */
 export const fw = (weight) => /** @type {any} */ (weight);
 
 export const Colors = {
-  // Modern Light Brand Colors
-  primary: '#2563eb',      // Vibrant blue
-  primaryLight: '#3b82f6', // Light blue
-  primaryAccent: '#0ea5e9', // Cyan accent
+  // Modern Light Theme - Primary Colors
+  primary: '#0066ff',      // Modern Blue (safe/confirmed) - Vibrant & professional
+  primaryLight: '#4d94ff', // Light blue
+  primaryAccent: '#0052cc', // Dark blue accent
 
-  secondary: '#7c3aed',    // Purple
-  secondaryLight: '#a78bfa', // Light purple
-
-  // Modern Category Colors - Light Palette
-  food: '#f59e0b',         // Warm amber
-  foodBg: '#fef3c7',       // Light amber background
-  foodDark: '#d97706',     // Dark amber
+  secondary: '#ff7f00',    // Modern Orange (in-progress) - Warm & energetic
+  secondaryLight: '#ffaa47', // Light orange
   
-  medicine: '#ef4444',     // Red
-  medicineBg: '#fee2e2',   // Light red background
-  medicineDark: '#dc2626', // Dark red
+  // Critical/SOS Color
+  danger: '#d32f2f',       // Deep Red (SOS/critical) - Bold & commanding
+  dangerLight: '#f57c77',  // Light red
+  dangerBg: 'rgba(211, 47, 47, 0.08)',
 
-  // Modern Light UI Colors
-  background: '#f8f9fc',   // Light gray background
-  surface: '#ffffff',      // White surface
-  surfaceAlt: '#f1f5f9',   // Light gray alt
-  surfaceAlt2: '#e2e8f0',  // Medium gray alt
-  border: '#e2e8f0',       // Light border
-  borderLight: '#f1f5f9',  // Very light border
-  borderFocus: '#3b82f6',  // Blue focus
+  // Light Theme Backgrounds
+  background: '#ffffff',   // Pure white, clean & bright
+  surface: '#f5f7fa',      // Very light gray surface
+  surfaceAlt: '#eeeff5',   // Medium light surface
+  surfaceHover: '#e8eaef', // Light surface hover
+  
+  // Borders & Dividers (light theme)
+  border: 'rgba(0, 0, 0, 0.08)',
+  borderFocus: '#0066ff',  // Blue border on focus
 
-  // Glassmorphism Colors - Transparent overlays
-  glassLight: 'rgba(255, 255, 255, 0.8)',      // Primary glass
-  glassDark: 'rgba(255, 255, 255, 0.6)',       // Secondary glass
-  glassExtraDark: 'rgba(255, 255, 255, 0.4)',  // Subtle glass
-  glassAccent: 'rgba(37, 99, 235, 0.1)',       // Blue tinted glass
-  glassPurple: 'rgba(124, 58, 237, 0.1)',      // Purple tinted glass
+  // Status Colors - Light optimized
+  success: '#2e7d32',      // Modern Green
+  successBg: 'rgba(46, 125, 50, 0.08)',
+  warning: '#f57c00',      // Modern Orange
+  warningBg: 'rgba(245, 124, 0, 0.08)',
+  error: '#d32f2f',        // Modern Red
+  errorBg: 'rgba(211, 47, 47, 0.08)',
+  
+  // Text Colors - Light theme optimized
+  textPrimary: '#212121',      // Dark text for light backgrounds
+  textSecondary: '#666666',    // Medium gray text
+  textMuted: '#999999',        // Muted text
+  textLabel: '#555555',        // Label text
+  textInverse: '#ffffff',      // Light text on dark
 
-  // Gradient Colors
-  gradientBlue: ['#3b82f6', '#0ea5e9'],        // Blue to cyan
-  gradientPurple: ['#7c3aed', '#a78bfa'],      // Purple gradient
-  gradientFood: ['#f59e0b', '#fbbf24'],        // Amber gradient
-  gradientMedicine: ['#ef4444', '#f87171'],    // Red gradient
+  // Accent Colors - Modern palette
+  teal: '#00897b',
+  tealbg: 'rgba(0, 137, 123, 0.08)',
+  amber: '#ff9800',
+  amberbg: 'rgba(255, 152, 0, 0.08)',
+  red: '#d32f2f',
+  redbg: 'rgba(211, 47, 47, 0.08)',
+  green: '#2e7d32',
+  greenbg: 'rgba(46, 125, 50, 0.08)',
+  blue: '#0066ff',
+  bluebg: 'rgba(0, 102, 255, 0.08)',
 
-  // Modern Text Hierarchy - Light Mode
-  textPrimary: '#1e293b',      // Dark gray text
-  textSecondary: '#475569',    // Medium gray text
-  textMuted: '#94a3b8',        // Light gray text
-  textInverse: '#ffffff',      // White text
-  textLabel: '#64748b',        // Label text
+  // Glass/Overlay Effects - Light theme
+  glassLight: 'rgba(255, 255, 255, 0.9)',      // Primary glass
+  glassDark: 'rgba(245, 247, 250, 0.95)',      // Lighter glass
+  glassAccent: 'rgba(0, 102, 255, 0.05)',      // Blue tinted glass
 
-  // Modern Accent Colors
-  blue: '#3b82f6',
-  blueDark: '#1e40af',
-  blueLight: '#dbeafe',
-  cyan: '#06b6d4',
-  cyanLight: '#cffafe',
-  green: '#10b981',
-  greenDark: '#059669',
-  greenLight: '#d1fae5',
-  yellow: '#eab308',
-  yellowLight: '#fef08a',
-  orange: '#f97316',
-  orangeLight: '#fed7aa',
-  red: '#ef4444',
-  redLight: '#fecaca',
-  purple: '#9333ea',
-  purpleLight: '#e9d5ff',
-  pink: '#ec4899',
-  pinkLight: '#fbcfe8',
-  indigo: '#4f46e5',
-  indigoLight: '#e0e7ff',
+  // Gradients - Modern light theme
+  gradientTeal: ['#00897b', '#26a69a'],        // Teal gradient
+  gradientAmber: ['#ff9800', '#ffb74d'],       // Amber gradient
+  gradientRed: ['#d32f2f', '#ff5252'],         // Red gradient
 
-  // Modern Status Colors
-  success: '#10b981',
-  successLight: '#d1fae5',
-  successBg: '#ecfdf5',
-  warning: '#f59e0b',
-  warningLight: '#fef3c7',
-  warningBg: '#fffbeb',
-  error: '#ef4444',
-  errorLight: '#fecaca',
-  errorBg: '#fef2f2',
-  info: '#3b82f6',
-  infoLight: '#dbeafe',
-  infoBg: '#eff6ff',
-
-  // Emergency Services Colors
-  emergency: '#dc2626',
-  emergencyLight: '#fee2e2',
-  emergencyBg: '#fef2f2',
-  ndrf: '#1e40af',
-  ndrfLight: '#dbeafe',
-  ndrfBg: '#eff6ff',
-  flood: '#0369a1',
-  floodLight: '#cffafe',
-  ambulance: '#10b981',
-  ambulanceLight: '#d1fae5',
-  disaster: '#9333ea',
-  disasterLight: '#e9d5ff',
-
-  // Transparency & Overlays
-  overlay: 'rgba(0, 0, 0, 0.3)',
-  overlayLight: 'rgba(0, 0, 0, 0.1)',
-  glass: 'rgba(255, 255, 255, 0.1)',
-  glassDark: 'rgba(15, 23, 42, 0.1)',
-
-  // Gradients (as strings for use with LinearGradient)
-  gradients: {
-    primary: ['#3b82f6', '#1e40af'],
-    success: ['#10b981', '#059669'],
-    danger: ['#ef4444', '#dc2626'],
-    warning: ['#f59e0b', '#d97706'],
-  }
+  // Modern Category Colors
+  food: '#ff9800',         // Modern Orange
+  foodBg: 'rgba(255, 152, 0, 0.08)',
+  
+  medicine: '#d32f2f',     // Modern Red
+  medicineBg: 'rgba(211, 47, 47, 0.08)',
+  
+  // Preserved original colors for compatibility
+  primaryOld: '#2563eb',
+  secondary_old: '#7c3aed',
+  background_light: '#ffffff',
+  surface_light: '#f5f7fa',
 };
 
 export const THEME = {

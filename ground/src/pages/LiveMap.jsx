@@ -9,11 +9,11 @@ function RequestDetails({ request, onClose, onUpdateStatus }) {
   const statusOptions = ["Pending", "Assigned", "In Transit", "Delivered"];
 
   const statusColors = {
-    Pending: "#d97706",
-    Assigned: "#0284c7",
-    "In Transit": "#7c3aed",
-    Delivered: "#10b981",
-    Urgent: "#dc2626",
+    Pending: "#d9a441",
+    Assigned: "#247b9f",
+    "In Transit": "#b84b2a",
+    Delivered: "#2f9e73",
+    Urgent: "#ba3a32",
   };
 
   return (
@@ -99,19 +99,19 @@ export default function LiveMap() {
         </div>
         <div className="map-legend">
           <span className="legend-item">
-            <span className="legend-dot" style={{ background: "#fbbf24" }} />
+            <span className="legend-dot" style={{ background: "#d9a441" }} />
             Pending
           </span>
           <span className="legend-item">
-            <span className="legend-dot" style={{ background: "#3b82f6" }} />
+            <span className="legend-dot" style={{ background: "#2f8fb6" }} />
             Assigned
           </span>
           <span className="legend-item">
-            <span className="legend-dot" style={{ background: "#8b5cf6" }} />
+            <span className="legend-dot" style={{ background: "#c8653d" }} />
             In Transit
           </span>
           <span className="legend-item">
-            <span className="legend-dot" style={{ background: "#ef4444" }} />
+            <span className="legend-dot" style={{ background: "#d94a3f" }} />
             Urgent
           </span>
         </div>

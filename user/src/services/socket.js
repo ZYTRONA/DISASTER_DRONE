@@ -73,6 +73,10 @@ const createSocket = (backendUrl, extraHeaders) => {
     logConnectError(error, backendUrl);
   });
 
+  client.on('reconnecting', (attempt) => {
+    console.log(`🔄 Socket.IO reconnecting (attempt ${attempt})...`);
+  });
+
   client.on('error', (error) => {
     console.warn('⚠️ Socket.IO error:', error?.message || error);
   });

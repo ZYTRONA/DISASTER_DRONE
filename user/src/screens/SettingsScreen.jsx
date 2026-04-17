@@ -66,8 +66,8 @@ export default function SettingsScreen(
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} translucent={false} />
       {/* Header */}
       <ModernHeader
         title="Settings"

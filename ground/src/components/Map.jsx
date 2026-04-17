@@ -27,11 +27,11 @@ const createIcon = (color) =>
   });
 
 const statusColors = {
-  Pending: "#fbbf24",
-  Assigned: "#3b82f6",
-  "In Transit": "#8b5cf6",
-  Delivered: "#22c55e",
-  Urgent: "#ef4444",
+  Pending: "#d9a441",
+  Assigned: "#2f8fb6",
+  "In Transit": "#c8653d",
+  Delivered: "#2f9e73",
+  Urgent: "#d94a3f",
   default: "#6b7280",
 };
 

@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "expo-blur": "^55.0.11-canary-20260328-2049187"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.1.3"
   }
 }

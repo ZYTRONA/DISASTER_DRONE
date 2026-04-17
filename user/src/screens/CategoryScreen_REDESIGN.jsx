@@ -108,8 +108,8 @@ export default function CategoryScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} translucent={false} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -128,7 +128,7 @@ export default function CategoryScreen({ navigation }) {
             onPress={handleSOSPress}
             activeOpacity={0.8}
           >
-            <Ionicons name="alert-circle" size={32} color="#ffffff" />
+            <Ionicons name="alert-circle" size={32} color={Colors.textInverse} />
             <Text style={styles.sosButtonText}>SOS Emergency</Text>
             <Text style={styles.sosButtonSubtext}>Tap for immediate help</Text>
           </TouchableOpacity>
@@ -143,25 +143,6 @@ export default function CategoryScreen({ navigation }) {
         >
           <Text style={styles.headerTitle}>What do you need?</Text>
           <Text style={styles.headerSubtitle}>Select from available resources</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.historyButton}
-              onPress={() => navigation.navigate('OrderHistory')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="time-outline" size={16} color={Colors.primary} />
-              <Text style={styles.historyButtonText}>Order History & Track</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => navigation.navigate('Settings')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="settings-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.settingsButtonText}>Settings</Text>
-            </TouchableOpacity>
-          </View>
         </Animated.View>
 
         {/* Resource Grid */}
@@ -233,7 +214,7 @@ export default function CategoryScreen({ navigation }) {
         {/* Warning for Critical */}
         {selectedUrgency === 'critical' && (
           <View style={styles.warningBox}>
-            <Ionicons name="information-circle" size={20} color="#f59e0b" />
+            <Ionicons name="information-circle" size={20} color={Colors.warning} />
             <Text style={styles.warningText}>Critical requests get priority dispatch within minutes</Text>
           </View>
         )}
@@ -251,7 +232,7 @@ export default function CategoryScreen({ navigation }) {
           <Text style={styles.submitButtonText}>
             {selectedResource ? `Request ${RESOURCE_LABELS[CATEGORIES.find(c => c.id === selectedResource)?.nameKey]}` : 'Select a resource'}
           </Text>
-          <Ionicons name="arrow-forward" size={20} color="#ffffff" style={styles.submitButtonIcon} />
+          <Ionicons name="arrow-forward" size={20} color={Colors.textInverse} style={styles.submitButtonIcon} />
         </TouchableOpacity>
 
         <View style={styles.spacing} />
@@ -289,12 +270,12 @@ const styles = {
   sosButtonText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Colors.textInverse,
     marginTop: 12,
   },
   sosButtonSubtext: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.textInverse,
     marginTop: 4,
   },
 
@@ -310,45 +291,6 @@ const styles = {
   },
   headerSubtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  headerActions: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-  },
-  historyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  historyButtonText: {
-    marginLeft: 6,
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  settingsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  settingsButtonText: {
-    marginLeft: 6,
-    fontSize: 13,
-    fontWeight: '600',
     color: Colors.textSecondary,
   },
 
