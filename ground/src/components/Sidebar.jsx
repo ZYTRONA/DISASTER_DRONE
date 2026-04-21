@@ -1,9 +1,10 @@
-import { LayoutDashboard, Map, History, Radio, Zap, Menu, X } from "lucide-react";
+import { LayoutDashboard, Map, History, Radio, Zap, Menu, X, Gamepad2 } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "requests", label: "Live Requests", icon: Zap },
   { id: "map", label: "Live Map", icon: Map },
+  { id: "operations", label: "Drone Ops", icon: Gamepad2 },
   { id: "history", label: "History", icon: History },
 ];
 

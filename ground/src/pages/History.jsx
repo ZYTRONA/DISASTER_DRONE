@@ -11,23 +11,23 @@ export default function History() {
   const [selectedRequest, setSelectedRequest] = useState(null);
 
   const statusColors = {
-    Pending: "#d9a441",
-    Assigned: "#247b9f",
-    "In Transit": "#b84b2a",
-    Delivered: "#2f9e73",
-    UserConfirmed: "#2f9e73",
-    Urgent: "#ba3a32",
-    Critical: "#ba3a32",
+    Pending: "#f59e0b",
+    Assigned: "#8b5cf6",
+    "In Transit": "#06b6d4",
+    Delivered: "#10b981",
+    UserConfirmed: "#10b981",
+    Urgent: "#ec4899",
+    Critical: "#dc2626",
   };
 
   const statusBgGradients = {
-    Pending: "rgba(217, 164, 65, 0.08)",
-    Assigned: "rgba(47, 143, 182, 0.08)",
-    "In Transit": "rgba(217, 95, 58, 0.08)",
-    Delivered: "rgba(47, 158, 115, 0.08)",
-    UserConfirmed: "rgba(47, 158, 115, 0.08)",
-    Urgent: "rgba(217, 74, 63, 0.08)",
-    Critical: "rgba(217, 74, 63, 0.08)",
+    Pending: "rgba(245, 158, 11, 0.08)",
+    Assigned: "rgba(139, 92, 246, 0.08)",
+    "In Transit": "rgba(6, 182, 212, 0.08)",
+    Delivered: "rgba(16, 185, 129, 0.08)",
+    UserConfirmed: "rgba(16, 185, 129, 0.08)",
+    Urgent: "rgba(236, 72, 153, 0.08)",
+    Critical: "rgba(220, 38, 38, 0.08)",
   };
 
   // Filter and sort requests
@@ -79,11 +79,11 @@ export default function History() {
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <Calendar size={32} color="#b84b2a" />
+          <Calendar size={32} color="#8b5cf6" />
           Request History
         </h1>
         <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#2f9e73" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#ba3a32" }}>{pendingCount}</strong> pending
+          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#10b981" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#ec4899" }}>{pendingCount}</strong> pending
         </p>
       </div>
 
@@ -97,17 +97,16 @@ export default function History() {
         }}
       >
         {[
-          { label: "Total Requests", value: requests.length, Icon: Package, color: "#247b9f" },
-          { label: "Completed", value: deliveredCount, Icon: CheckCircle, color: "#2f9e73" },
-          { label: "In Progress", value: pendingCount, Icon: Hourglass, color: "#d9a441" },
-          { label: "Success Rate", value: requests.length > 0 ? Math.round((deliveredCount / requests.length) * 100) + "%" : "0%", Icon: BarChart3, color: "#b84b2a" },
+          { label: "Total Requests", value: requests.length, Icon: Package, color: "#8b5cf6" },
+          { label: "Completed", value: deliveredCount, Icon: CheckCircle, color: "#10b981" },
+          { label: "In Progress", value: pendingCount, Icon: Hourglass, color: "#f59e0b" },
+          { label: "Success Rate", value: requests.length > 0 ? Math.round((deliveredCount / requests.length) * 100) + "%" : "0%", Icon: BarChart3, color: "#06b6d4" },
         ].map((stat, idx) => (
           <div
             key={idx}
             style={{
-              background: "linear-gradient(135deg, rgba(47, 143, 182, 0.06), rgba(29, 106, 135, 0.03))",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(47, 143, 182, 0.1)",
+              background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.03))",
+              border: "1px solid rgba(139, 92, 246, 0.1)",
               borderRadius: "12px",
               padding: "16px",
               display: "flex",
@@ -154,9 +153,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            background: "linear-gradient(135deg, rgba(47, 143, 182, 0.06), rgba(29, 106, 135, 0.02))",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(47, 143, 182, 0.1)",
+            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
+            border: "1px solid rgba(139, 92, 246, 0.1)",
             borderRadius: "10px",
             padding: "12px 16px",
             color: "var(--text-muted)",
@@ -184,9 +182,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(47, 143, 182, 0.06), rgba(29, 106, 135, 0.02))",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(47, 143, 182, 0.1)",
+            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
+            border: "1px solid rgba(139, 92, 246, 0.1)",
             borderRadius: "10px",
             padding: "8px 14px",
             color: "var(--text-muted)",
@@ -219,9 +216,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(30, 111, 143, 0.02))",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(217, 95, 58, 0.15)",
+            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
+            border: "1px solid rgba(139, 92, 246, 0.15)",
             borderRadius: "10px",
             padding: "8px 14px",
             color: "var(--text-muted)",
@@ -249,9 +245,9 @@ export default function History() {
       {/* History Table */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(30, 111, 143, 0.02))",
+          background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(217, 95, 58, 0.15)",
+          border: "1px solid rgba(139, 92, 246, 0.15)",
           borderRadius: "12px",
           overflow: "hidden",
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
@@ -264,8 +260,8 @@ export default function History() {
             gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
             gap: "16px",
             padding: "16px 20px",
-            borderBottom: "1px solid rgba(217, 95, 58, 0.1)",
-            background: "rgba(217, 95, 58, 0.05)",
+            borderBottom: "1px solid rgba(139, 92, 246, 0.1)",
+            background: "rgba(139, 92, 246, 0.05)",
             fontWeight: 700,
             fontSize: "12px",
             color: "var(--text-muted)",
@@ -296,7 +292,7 @@ export default function History() {
                   gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
                   gap: "16px",
                   padding: "16px 20px",
-                  borderBottom: "1px solid rgba(217, 95, 58, 0.08)",
+                  borderBottom: "1px solid rgba(139, 92, 246, 0.08)",
                   alignItems: "center",
                   transition: "all 0.2s ease",
                   background: idx % 2 === 0 ? "rgba(255, 255, 255, 0.01)" : "transparent",
@@ -387,7 +383,6 @@ export default function History() {
             right: 0,
             bottom: 0,
             background: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -399,8 +394,7 @@ export default function History() {
         >
           <div
             style={{
-              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
-              backdropFilter: "blur(20px)",
+              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))",
               border: "1px solid rgba(217, 95, 58, 0.2)",
               borderRadius: "20px",
               maxWidth: "500px",

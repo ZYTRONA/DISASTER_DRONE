@@ -16,7 +16,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,8 +25,98 @@ import { useAppContext } from '../context/AppContext';
 import { Colors } from '../themes/colors';
 import { FOOD_ITEMS, MEDICINE_ITEMS, FIRST_AID_ITEMS } from '../utils/constants';
 
-const { width } = Dimensions.get('window');
 const ITEM_GRID_COLS = 2;
+const SLIDE_INTERVAL_MS = 2500;
+
+const LOCAL_CATEGORY_IMAGES = {
+  Food: require('../../assets/images/items/category_food.png'),
+  Medicine: require('../../assets/images/items/category_medicine.png'),
+  FirstAid: require('../../assets/images/items/category_firstaid.png'),
+  Default: require('../../assets/images/items/default_item.png'),
+};
+
+const ITEM_SLIDESHOW_IMAGES = {
+  biscuit: [
+    require('../../assets/images/items/biscuit/1.png'),
+    require('../../assets/images/items/biscuit/2.png'),
+    require('../../assets/images/items/biscuit/3.png'),
+  ],
+  protein: [
+    require('../../assets/images/items/protein/1.png'),
+    require('../../assets/images/items/protein/2.png'),
+    require('../../assets/images/items/protein/3.png'),
+  ],
+  milkpwd: [
+    require('../../assets/images/items/milkpwd/1.png'),
+    require('../../assets/images/items/milkpwd/2.png'),
+    require('../../assets/images/items/milkpwd/3.png'),
+  ],
+  fruits: [
+    require('../../assets/images/items/fruits/1.png'),
+    require('../../assets/images/items/fruits/2.png'),
+    require('../../assets/images/items/fruits/3.png'),
+  ],
+  noodles: [
+    require('../../assets/images/items/noodles/1.png'),
+    require('../../assets/images/items/noodles/2.png'),
+    require('../../assets/images/items/noodles/3.png'),
+  ],
+  para: [
+    require('../../assets/images/items/para/1.png'),
+    require('../../assets/images/items/para/2.png'),
+    require('../../assets/images/items/para/3.png'),
+  ],
+  ors: [
+    require('../../assets/images/items/ors/1.png'),
+    require('../../assets/images/items/ors/2.png'),
+    require('../../assets/images/items/ors/3.png'),
+  ],
+  bandage: [
+    require('../../assets/images/items/bandage/1.png'),
+    require('../../assets/images/items/bandage/2.png'),
+    require('../../assets/images/items/bandage/3.png'),
+  ],
+  antisep: [
+    require('../../assets/images/items/antisep/1.png'),
+    require('../../assets/images/items/antisep/2.png'),
+    require('../../assets/images/items/antisep/3.png'),
+  ],
+  gloves: [
+    require('../../assets/images/items/gloves/1.png'),
+    require('../../assets/images/items/gloves/2.png'),
+    require('../../assets/images/items/gloves/3.png'),
+  ],
+  bp: [
+    require('../../assets/images/items/bp/1.png'),
+    require('../../assets/images/items/bp/2.png'),
+    require('../../assets/images/items/bp/3.png'),
+  ],
+  diab: [
+    require('../../assets/images/items/diab/1.png'),
+    require('../../assets/images/items/diab/2.png'),
+    require('../../assets/images/items/diab/3.png'),
+  ],
+  insulin: [
+    require('../../assets/images/items/insulin/1.png'),
+    require('../../assets/images/items/insulin/2.png'),
+    require('../../assets/images/items/insulin/3.png'),
+  ],
+  painrel: [
+    require('../../assets/images/items/painrel/1.png'),
+    require('../../assets/images/items/painrel/2.png'),
+    require('../../assets/images/items/painrel/3.png'),
+  ],
+  cough: [
+    require('../../assets/images/items/cough/1.png'),
+    require('../../assets/images/items/cough/2.png'),
+    require('../../assets/images/items/cough/3.png'),
+  ],
+  napkin: [
+    require('../../assets/images/items/napkin/1.png'),
+    require('../../assets/images/items/napkin/2.png'),
+    require('../../assets/images/items/napkin/3.png'),
+  ],
+};
 
 export default function ItemSelectionScreen({ navigation, route }) {
   const { category, urgency } = route.params || {};
@@ -53,6 +143,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
   const [people, setPeople] = useState(1);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [slideTick, setSlideTick] = useState(0);
 
   // Animations
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -72,6 +163,23 @@ export default function ItemSelectionScreen({ navigation, route }) {
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setSlideTick((prev) => (prev + 1) % 1000);
+    }, SLIDE_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const getItemImageSource = (item) => {
+    const fallbackImage =
+      LOCAL_CATEGORY_IMAGES[category] ||
+      LOCAL_CATEGORY_IMAGES.Default;
+
+    const slideshowImages = ITEM_SLIDESHOW_IMAGES[item.id] || [fallbackImage];
+    return slideshowImages[slideTick % slideshowImages.length] || fallbackImage;
+  };
 
   const toggleItemSelection = (itemId) => {
     setSelectedItems((prev) => {
@@ -224,11 +332,17 @@ export default function ItemSelectionScreen({ navigation, route }) {
 
           {/* Items Grid */}
           <View style={styles.itemsSection}>
-            <Text style={styles.sectionTitle}>Available {category}</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Available {category}</Text>
+              <Text style={styles.sectionMeta}>
+                {Object.keys(selectedItems).length} selected
+              </Text>
+            </View>
             <View style={styles.itemsGrid}>
               {items.map((item) => {
                 const quantity = selectedItems[item.id] || 0;
                 const isSelected = quantity > 0;
+                const imageSource = getItemImageSource(item);
                 return (
                   <TouchableOpacity
                     key={item.id}
@@ -248,15 +362,27 @@ export default function ItemSelectionScreen({ navigation, route }) {
                         },
                       ]}
                     >
-                      <View style={[styles.itemIcon, styles.iconFallback]}>
-                        <Ionicons
-                          name={item.icon}
-                          size={40}
-                          color={Colors.primary}
+                      <View style={styles.itemMediaWrap}>
+                        <Image
+                          source={imageSource}
+                          style={styles.itemImage}
                         />
+
+                        {isSelected ? (
+                          <View style={styles.selectedBadge}>
+                            <Ionicons name="checkmark" size={14} color="#ffffff" />
+                          </View>
+                        ) : null}
                       </View>
-                      <Text style={styles.itemName}>{item.en}</Text>
-                      <Text style={styles.itemUnit}>{item.unit}</Text>
+
+                      <View style={styles.itemBody}>
+                        <Text style={styles.itemName} numberOfLines={2}>
+                          {item.en}
+                        </Text>
+                        <View style={styles.itemUnitBadge}>
+                          <Text style={styles.itemUnit}>{item.unit}</Text>
+                        </View>
+                      </View>
 
                       {isSelected && (
                         <View style={styles.quantityController}>
@@ -266,7 +392,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
                           >
                             <Ionicons
                               name="remove"
-                              size={16}
+                              size={15}
                               color={Colors.primary}
                             />
                           </TouchableOpacity>
@@ -277,7 +403,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
                           >
                             <Ionicons
                               name="add"
-                              size={16}
+                              size={15}
                               color={Colors.primary}
                             />
                           </TouchableOpacity>
@@ -455,67 +581,124 @@ const styles = {
     color: Colors.textPrimary,
     marginBottom: 14,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionMeta: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+    backgroundColor: Colors.primary + '10',
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
   itemsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     justifyContent: 'space-between',
   },
   itemCard: {
-    width: `${100 / ITEM_GRID_COLS - 1}%`,
+    width: `${100 / ITEM_GRID_COLS - 1.5}%`,
     marginBottom: 8,
   },
   itemCardInner: {
-    alignItems: 'center',
-    paddingVertical: 14,
+    alignItems: 'stretch',
+    paddingVertical: 10,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  itemIcon: {
-    width: 80,
-    height: 80,
+  itemMediaWrap: {
+    position: 'relative',
+    marginBottom: 10,
+  },
+  itemImage: {
+    width: '100%',
+    height: 92,
     borderRadius: 12,
-    marginBottom: 8,
     resizeMode: 'cover',
-  },
-  iconFallback: {
     backgroundColor: Colors.surface,
+  },
+  selectedBadge: {
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  itemBody: {
+    minHeight: 54,
   },
   itemName: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.textPrimary,
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 4,
+    lineHeight: 16,
+  },
+  itemUnitBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   itemUnit: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textSecondary,
-    fontStyle: 'italic',
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   quantityController: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
     backgroundColor: Colors.primary + '10',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    borderRadius: 999,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.primary + '25',
     gap: 6,
+    alignSelf: 'flex-start',
   },
   quantityButton: {
-    padding: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.primary,
-    width: 24,
+    width: 20,
     textAlign: 'center',
   },
 

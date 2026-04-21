@@ -26,9 +26,8 @@ import {
   responsiveFontSize,
   getResponsiveSpacing,
   getResponsiveBorderRadius,
-  getDeviceType,
 } from '../utils/responsive';
-import { requestLocationPermission, checkLocationPermission, checkLocationServicesEnabled } from '../services/location';
+import { requestLocationPermission, checkLocationServicesEnabled } from '../services/location';
 
 /**
  * @typedef {Object} LocationPermissionModalProps
@@ -43,6 +42,7 @@ import { requestLocationPermission, checkLocationPermission, checkLocationServic
 export default function LocationPermissionModal({ visible, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState('pending'); // pending, granted, denied, services_disabled
+  const styles = getStyles();
 
   const handleRequestPermission = async () => {
     setLoading(true);
@@ -67,6 +67,7 @@ export default function LocationPermissionModal({ visible, onComplete }) {
       const message = err instanceof Error ? err.message : 'Failed to request permission';
       console.error('❌ Permission error:', message);
       Alert.alert('Permission Error', message, [{ text: 'Try Again', onPress: () => setLoading(false) }]);
+    } finally {
       setLoading(false);
     }
   };
@@ -103,34 +104,40 @@ export default function LocationPermissionModal({ visible, onComplete }) {
 
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
-      <BlurView intensity={90} style={getStyles().blurContainer}>
-        <View style={getStyles().container}>
-          {permissionStatus === 'services_disabled' ? (
+      <BlurView intensity={90} style={styles.backdrop}>
+        <View style={styles.card}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            {permissionStatus === 'services_disabled' ? (
             <>
-              <View style={getStyles().iconContainer}>
+              <View style={[styles.iconContainer, styles.iconError]}>
                 <Ionicons name="warning" size={rem(64)} color={Colors.error} />
               </View>
 
-              <Text style={getStyles().title}>Location Services Off</Text>
+              <Text style={styles.title}>Location Services Off</Text>
 
-              <Text style={getStyles().description}>
+              <Text style={styles.description}>
                 Your device's GPS/Location services are turned OFF. Please enable them to use this feature.
               </Text>
 
               <TouchableOpacity
-                style={[getStyles().button, getStyles().buttonPrimary]}
+                style={[styles.button, styles.buttonPrimary]}
                 onPress={handleOpenLocationSettings}
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                <Ionicons name="settings" size={rem(18)} color="white" style={getStyles().buttonIcon} />
-                <Text style={getStyles().buttonTextPrimary} numberOfLines={1}>
+                <Ionicons name="settings" size={rem(18)} color="white" style={styles.buttonIcon} />
+                <Text style={styles.buttonTextPrimary} numberOfLines={1}>
                   Open Device Settings
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[getStyles().button, getStyles().buttonSecondary]}
+                style={[styles.button, styles.buttonSecondary]}
                 onPress={() => {
                   setPermissionStatus('pending');
                   handleRequestPermission();
@@ -138,31 +145,25 @@ export default function LocationPermissionModal({ visible, onComplete }) {
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Text style={getStyles().buttonTextSecondary} numberOfLines={1}>
+                <Text style={styles.buttonTextSecondary} numberOfLines={1}>
                   Try Again
                 </Text>
               </TouchableOpacity>
             </>
           ) : permissionStatus === 'pending' ? (
             <>
-              {/* Icon */}
-              <View style={getStyles().iconContainer}>
+              <View style={styles.iconContainer}>
                 <Ionicons name="location" size={rem(64)} color={Colors.primary} />
               </View>
 
-              {/* Title */}
-              <Text style={getStyles().title}>Location Access Needed</Text>
+              <Text style={styles.title}>Location Access Needed</Text>
 
-              {/* Description */}
-              <Text style={getStyles().description}>
+              <Text style={styles.description}>
                 We need your location to deliver relief supplies to you accurately.
               </Text>
 
-              {/* Permission List - REMOVED FOR SIMPLICITY */}
-
-              {/* Buttons */}
               <TouchableOpacity
-                style={[getStyles().button, getStyles().buttonPrimary]}
+                style={[styles.button, styles.buttonPrimary]}
                 onPress={handleRequestPermission}
                 disabled={loading}
                 activeOpacity={0.8}
@@ -171,8 +172,8 @@ export default function LocationPermissionModal({ visible, onComplete }) {
                   <ActivityIndicator color="white" />
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={rem(18)} color="white" style={getStyles().buttonIcon} />
-                    <Text style={getStyles().buttonTextPrimary} numberOfLines={1}>
+                    <Ionicons name="checkmark-circle" size={rem(18)} color="white" style={styles.buttonIcon} />
+                    <Text style={styles.buttonTextPrimary} numberOfLines={1}>
                       Grant Location Access
                     </Text>
                   </>
@@ -180,62 +181,48 @@ export default function LocationPermissionModal({ visible, onComplete }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[getStyles().button, getStyles().buttonSecondary]}
+                style={[styles.button, styles.buttonSecondary]}
                 onPress={handleSkip}
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Text style={getStyles().buttonTextSecondary} numberOfLines={1}>
+                <Text style={styles.buttonTextSecondary} numberOfLines={1}>
                   Ask Later
                 </Text>
               </TouchableOpacity>
             </>
           ) : permissionStatus === 'granted' ? (
             <>
-              <View style={getStyles().successIcon}>
+              <View style={[styles.iconContainer, styles.iconSuccess]}>
                 <Ionicons name="checkmark-circle" size={rem(80)} color={Colors.success} />
               </View>
-              <Text style={getStyles().successTitle}>Permission Granted!</Text>
-              <Text style={getStyles().successDescription}>Your location access is now enabled. You're ready to request relief supplies.</Text>
+              <Text style={[styles.title, styles.titleSuccess]}>Permission Granted</Text>
+              <Text style={styles.description}>Your location access is now enabled. You can request relief supplies.</Text>
             </>
           ) : (
             <>
-              <View style={getStyles().errorIcon}>
+              <View style={[styles.iconContainer, styles.iconError]}>
                 <Ionicons name="alert-circle" size={rem(80)} color={Colors.error} />
               </View>
-              <Text style={getStyles().errorTitle}>Permission Denied</Text>
-              <Text style={getStyles().errorDescription}>
+              <Text style={[styles.title, styles.titleError]}>Permission Denied</Text>
+              <Text style={styles.description}>
                 Location permission was denied. You can enable it in Settings → Permissions if you change your mind.
               </Text>
               <TouchableOpacity
-                style={[getStyles().button, getStyles().buttonPrimary]}
+                style={[styles.button, styles.buttonPrimary]}
                 onPress={() => onComplete(false)}
                 activeOpacity={0.8}
               >
-                <Text style={getStyles().buttonTextPrimary} numberOfLines={1}>
+                <Text style={styles.buttonTextPrimary} numberOfLines={1}>
                   Continue
                 </Text>
               </TouchableOpacity>
             </>
           )}
+          </ScrollView>
         </View>
       </BlurView>
     </Modal>
-  );
-}
-
-/**
- * Feature list item component
- * @param {{icon: string, text: string, color: string}} props
- */
-function FeatureItem({ icon, text, color }) {
-  return (
-    <View style={getStyles().featureItem}>
-      <View style={[getStyles().featureIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={rem(20)} color={color} />
-      </View>
-      <Text style={getStyles().featureText}>{text}</Text>
-    </View>
   );
 }
 
@@ -247,191 +234,109 @@ const getStyles = () => {
   const isTablet = width > 600;
   const spacing = getResponsiveSpacing();
   const radius = getResponsiveBorderRadius();
-  const deviceType = getDeviceType();
 
   return StyleSheet.create({
-    blurContainer: {
+    backdrop: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      paddingHorizontal: rem(20),
+      paddingVertical: rem(16),
     },
-    container: {
-      marginHorizontal: rem(16),
-      paddingHorizontal: isTablet ? rem(32) : rem(20),
-      paddingVertical: isTablet ? rem(44) : rem(36),
-      borderRadius: radius.xl,
+    card: {
+      width: '100%',
+      maxWidth: isTablet ? rem(480) : rem(420),
+      maxHeight: Math.min(height * 0.9, rem(580)),
       backgroundColor: '#ffffff',
-      alignItems: 'center',
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: Colors.border,
+      paddingHorizontal: isTablet ? rem(28) : rem(20),
+      paddingVertical: isTablet ? rem(28) : rem(20),
       elevation: 10,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.15,
-      shadowRadius: 20,
-      maxWidth: isTablet ? '70%' : '100%',
-      maxHeight: height * 0.85,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.14,
+      shadowRadius: 18,
+    },
+    scroll: {
+      width: '100%',
     },
     scrollContent: {
-      width: '100%',
       flexGrow: 1,
       justifyContent: 'center',
+      alignItems: 'center',
     },
     iconContainer: {
-      width: rem(isTablet ? 130 : 110),
-      height: rem(isTablet ? 130 : 110),
-      borderRadius: rem(isTablet ? 65 : 55),
+      width: rem(isTablet ? 96 : 84),
+      height: rem(isTablet ? 96 : 84),
+      borderRadius: rem(isTablet ? 48 : 42),
       backgroundColor: Colors.primary + '15',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: spacing.xl,
-      shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
+      marginBottom: spacing.lg,
+    },
+    iconSuccess: {
+      backgroundColor: Colors.successBg,
+    },
+    iconError: {
+      backgroundColor: Colors.errorBg,
     },
     title: {
-      fontSize: responsiveFontSize(isTablet ? 28 : 26),
-      fontWeight: '800',
+      fontSize: responsiveFontSize(isTablet ? 24 : 22),
+      fontWeight: '700',
       color: Colors.textPrimary,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
       textAlign: 'center',
-      letterSpacing: -0.5,
+    },
+    titleSuccess: {
+      color: Colors.success,
+    },
+    titleError: {
+      color: Colors.error,
     },
     description: {
-      fontSize: responsiveFontSize(isTablet ? 16 : 15),
+      fontSize: responsiveFontSize(isTablet ? 15 : 14),
       color: Colors.textSecondary,
       textAlign: 'center',
-      lineHeight: responsiveFontSize(isTablet ? 26 : 24),
+      lineHeight: responsiveFontSize(isTablet ? 22 : 20),
       marginBottom: spacing.xl,
-      fontWeight: '400',
-      paddingHorizontal: spacing.sm,
-    },
-    descriptionBold: {
-      fontWeight: '600',
-      color: Colors.primary,
-    },
-    featuresList: {
-      width: '100%',
-      marginBottom: spacing.xl,
-      gap: spacing.md,
-      display: 'none', // Hidden for simple version
-    },
-    actionsGrid: {
-      width: '100%',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: isTablet ? rem(24) : rem(20),
-      marginBottom: spacing.xl,
-      paddingVertical: spacing.sm,
-      flexWrap: 'wrap',
-      display: 'none', // Hidden for simple version
-    },
-    actionButton: {
-      width: rem(isTablet ? 85 : 70),
-      height: rem(isTablet ? 85 : 70),
-      borderRadius: radius.lg,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    featureItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md,
-      borderRadius: radius.md,
-      backgroundColor: Colors.surfaceAlt,
-    },
-    featureIcon: {
-      width: rem(isTablet ? 52 : 44),
-      height: rem(isTablet ? 52 : 44),
-      borderRadius: radius.md,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.md,
-    },
-    featureText: {
-      fontSize: responsiveFontSize(isTablet ? 15 : 14),
-      fontWeight: '500',
-      color: Colors.textPrimary,
-      flex: 1,
+      paddingHorizontal: spacing.xs,
     },
     button: {
       width: '100%',
-      paddingVertical: rem(isTablet ? 16 : 14),
-      paddingHorizontal: rem(isTablet ? 20 : 16),
-      borderRadius: radius.lg,
-      marginBottom: spacing.md,
+      minHeight: rem(isTablet ? 52 : 48),
+      paddingVertical: rem(12),
+      paddingHorizontal: rem(16),
+      borderRadius: radius.md,
+      marginBottom: spacing.sm,
       flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 3,
     },
     buttonPrimary: {
       backgroundColor: Colors.primary,
     },
     buttonSecondary: {
-      backgroundColor: Colors.surfaceAlt,
-      borderWidth: 2,
-      borderColor: Colors.primary + '40',
+      backgroundColor: Colors.surface,
+      borderWidth: 1,
+      borderColor: Colors.border,
     },
     buttonIcon: {
-      marginRight: spacing.xs,
+      marginRight: spacing.sm,
     },
     buttonTextPrimary: {
-      fontSize: responsiveFontSize(isTablet ? 16 : 15),
+      fontSize: responsiveFontSize(isTablet ? 15 : 14),
       fontWeight: '600',
       color: 'white',
       flexShrink: 1,
     },
     buttonTextSecondary: {
-      fontSize: responsiveFontSize(isTablet ? 16 : 15),
+      fontSize: responsiveFontSize(isTablet ? 15 : 14),
       fontWeight: '600',
       color: Colors.primary,
       flexShrink: 1,
-    },
-    successIcon: {
-      marginBottom: spacing.lg,
-    },
-    successTitle: {
-      fontSize: responsiveFontSize(isTablet ? 26 : 22),
-      fontWeight: '700',
-      color: Colors.success,
-      marginBottom: spacing.md,
-      textAlign: 'center',
-    },
-    successDescription: {
-      fontSize: responsiveFontSize(isTablet ? 16 : 14),
-      color: Colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: responsiveFontSize(isTablet ? 24 : 20),
-    },
-    errorIcon: {
-      marginBottom: spacing.lg,
-    },
-    errorTitle: {
-      fontSize: responsiveFontSize(isTablet ? 26 : 22),
-      fontWeight: '700',
-      color: Colors.error,
-      marginBottom: spacing.md,
-      textAlign: 'center',
-    },
-    errorDescription: {
-      fontSize: responsiveFontSize(isTablet ? 16 : 14),
-      color: Colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: responsiveFontSize(isTablet ? 24 : 20),
-      marginBottom: spacing.xl,
     },
   });
 };

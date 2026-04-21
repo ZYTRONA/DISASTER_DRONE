@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import DeckGL from "@deck.gl/react";
-import { ScatterplotLayer, LineLayer } from "@deck.gl/layers";
-import { Map as MapLibreMap } from "react-map-gl/dist/esm/exports-maplibre.js";
+import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
+import { Map as MapLibreMap } from "react-map-gl/maplibre";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapPin, Navigation, Package, Clock, AlertTriangle, Radio, Filter, Zap, Settings, X, Crosshair, Save, Search, CheckCircle, Truck, Send, User, Phone, Utensils, Pill, Tent, Satellite, Target, Helicopter, AlertCircle, Hourglass, Plane, Ruler, RefreshCw, Building2 } from "lucide-react";
@@ -87,14 +87,66 @@ function clampToIndia(lat, lon) {
   };
 }
 
+function getRequestCoordinates(request) {
+  const lat = Number(request?.lat ?? request?.latitude);
+  const lon = Number(request?.lon ?? request?.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return null;
+  }
+
+  // Some records can carry placeholder coordinates (0, 0) before device GPS is ready.
+  const isPlaceholder = Math.abs(lat) < 0.000001 && Math.abs(lon) < 0.000001;
+  if (isPlaceholder) {
+    return null;
+  }
+
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return null;
+  }
+
+  return { lat, lon };
+}
+
+function getFocusZoom(distanceKm) {
+  if (distanceKm <= 2) return 12;
+  if (distanceKm <= 5) return 11;
+  if (distanceKm <= 15) return 10;
+  if (distanceKm <= 50) return 9;
+  if (distanceKm <= 150) return 8;
+  if (distanceKm <= 400) return 7;
+  return 6;
+}
+
+function normalizeViewState(vs) {
+  return {
+    longitude: Number(vs?.longitude ?? INDIA_CENTER[0]),
+    latitude: Number(vs?.latitude ?? INDIA_CENTER[1]),
+    zoom: Number(vs?.zoom ?? INDIA_ZOOM),
+    pitch: Number(vs?.pitch ?? 0),
+    bearing: Number(vs?.bearing ?? 0),
+  };
+}
+
+function hasViewStateChanged(prev, next) {
+  const EPSILON = 0.0000001;
+  return (
+    Math.abs(prev.longitude - next.longitude) > EPSILON ||
+    Math.abs(prev.latitude - next.latitude) > EPSILON ||
+    Math.abs(prev.zoom - next.zoom) > EPSILON ||
+    Math.abs(prev.pitch - next.pitch) > EPSILON ||
+    Math.abs(prev.bearing - next.bearing) > EPSILON
+  );
+}
+
 const statusColors = {
-  Pending: [217, 164, 65],      // #d9a441
-  Assigned: [47, 143, 182],     // #2f8fb6
-  "In Transit": [217, 95, 58], // #d95f3a
-  Delivered: [47, 158, 115],    // #2f9e73
-  UserConfirmed: [47, 158, 115], // #2f9e73
-  Urgent: [217, 74, 63],      // #d94a3f
-  Critical: [217, 74, 63],    // #d94a3f
+  Pending: [234, 140, 85],      // #ea8c55
+  Assigned: [0, 102, 204],     // #0066cc
+  "In Transit": [0, 102, 204], // #0066cc
+  Delivered: [22, 163, 74],    // #16a34a
+  UserConfirmed: [22, 163, 74], // #16a34a
+  Urgent: [220, 38, 38],      // #dc2626
+  Critical: [220, 38, 38],    // #dc2626
 };
 
 const OSM_RASTER_STYLE = {
@@ -117,6 +169,8 @@ const OSM_RASTER_STYLE = {
     },
   ],
 };
+
+const OSRM_ROUTE_BASE = "https://router.project-osrm.org/route/v1/driving";
 
 function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
   const [customLat, setCustomLat] = useState(gsLocation.lat.toString());
@@ -155,7 +209,6 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
         right: 0,
         bottom: 0,
         background: "rgba(0, 0, 0, 0.3)",
-        backdropFilter: "blur(8px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -166,9 +219,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
     >
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
-          backdropFilter: "blur(20px)",
-          border: "1px solid rgba(217, 95, 58, 0.2)",
+          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))",
+          border: "1px solid rgba(0, 102, 204, 0.2)",
           borderRadius: "20px",
           maxWidth: "500px",
           width: "100%",
@@ -176,9 +228,9 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: "24px", borderBottom: "1px solid rgba(217, 95, 58, 0.15)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.15)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #d95f3a, #1e6f8f)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #0066cc, #004a99)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Building2 size={24} color="white" />
             </div>
             <div>
@@ -186,8 +238,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
               <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>Set your command center position</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(217, 74, 63, 0.15)", border: "1px solid rgba(217, 74, 63, 0.3)", borderRadius: "8px", padding: "8px", cursor: "pointer" }}>
-            <X size={20} color="#d94a3f" />
+          <button onClick={onClose} style={{ background: "rgba(0, 102, 204, 0.15)", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "8px", padding: "8px", cursor: "pointer" }}>
+            <X size={20} color="#0066cc" />
           </button>
         </div>
 
@@ -203,8 +255,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
                   onClick={() => handlePresetSelect(preset)}
                   style={{
                     padding: "12px",
-                    background: customName === preset.name ? "linear-gradient(135deg, rgba(217, 95, 58, 0.15), rgba(30, 111, 143, 0.08))" : "rgba(217, 95, 58, 0.06)",
-                    border: `1px solid ${customName === preset.name ? "rgba(217, 95, 58, 0.4)" : "rgba(217, 95, 58, 0.15)"}`,
+                    background: customName === preset.name ? "linear-gradient(135deg, rgba(0, 102, 204, 0.15), rgba(0, 102, 204, 0.08))" : "rgba(0, 102, 204, 0.06)",
+                    border: `1px solid ${customName === preset.name ? "rgba(0, 102, 204, 0.4)" : "rgba(0, 102, 204, 0.15)"}`,
                     borderRadius: "10px",
                     cursor: "pointer",
                     textAlign: "left",
@@ -234,8 +286,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
                 style={{
                   width: "100%",
                   padding: "12px",
-                  background: "rgba(217, 95, 58, 0.08)",
-                  border: "1px solid rgba(217, 95, 58, 0.2)",
+                  background: "rgba(0, 102, 204, 0.08)",
+                  border: "1px solid rgba(0, 102, 204, 0.2)",
                   borderRadius: "10px",
                   color: "var(--text-primary)",
                   fontSize: "13px",
@@ -256,8 +308,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
                   style={{
                     width: "100%",
                     padding: "12px",
-                    background: "rgba(217, 95, 58, 0.08)",
-                    border: "1px solid rgba(217, 95, 58, 0.2)",
+                    background: "rgba(0, 102, 204, 0.08)",
+                    border: "1px solid rgba(0, 102, 204, 0.2)",
                     borderRadius: "10px",
                     color: "var(--text-primary)",
                     fontSize: "13px",
@@ -276,8 +328,8 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
                   style={{
                     width: "100%",
                     padding: "12px",
-                    background: "rgba(217, 95, 58, 0.08)",
-                    border: "1px solid rgba(217, 95, 58, 0.2)",
+                    background: "rgba(0, 102, 204, 0.08)",
+                    border: "1px solid rgba(0, 102, 204, 0.2)",
                     borderRadius: "10px",
                     color: "var(--text-primary)",
                     fontSize: "13px",
@@ -295,13 +347,14 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
               style={{
                 flex: 1,
                 padding: "14px",
-                background: "rgba(217, 95, 58, 0.1)",
-                border: "1px solid rgba(217, 95, 58, 0.2)",
+                background: "rgba(0, 102, 204, 0.1)",
+                border: "1.5px solid #0066cc",
                 borderRadius: "10px",
-                color: "var(--text-primary)",
+                color: "#0066cc",
                 fontSize: "13px",
                 fontWeight: 700,
                 cursor: "pointer",
+                transition: "all 0.2s ease",
               }}
             >
               Cancel
@@ -311,17 +364,15 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
               style={{
                 flex: 1,
                 padding: "14px",
-                background: "linear-gradient(135deg, #d95f3a, #1e6f8f)",
+                background: "#0066cc",
                 border: "none",
                 borderRadius: "10px",
                 color: "#ffffff",
                 fontSize: "13px",
                 fontWeight: 700,
                 cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
+                transition: "all 0.2s ease",
+                boxShadow: "0 2px 8px rgba(0, 102, 204, 0.25)",
               }}
             >
               <Save size={18} />
@@ -336,7 +387,7 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
 
 export default function LiveRequests() {
   const { requests, loading, acceptRequest, setInTransit, markDelivered } = useRequests();
-  const mapRef = useRef(null);
+  const latestRequestIdRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -344,13 +395,9 @@ export default function LiveRequests() {
   const [showGSSettings, setShowGSSettings] = useState(false);
   const [isSelectingOnMap, setIsSelectingOnMap] = useState(false);
   const [processingId, setProcessingId] = useState(null);
-  const [viewState, setViewState] = useState({
-    longitude: INDIA_CENTER[0],
-    latitude: INDIA_CENTER[1],
-    zoom: INDIA_ZOOM,
-    pitch: 0,
-    bearing: 0,
-  });
+  const [roadRoute, setRoadRoute] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [viewState, setViewState] = useState(() => normalizeViewState());
 
   const handleAccept = async (requestId, e) => {
     e?.stopPropagation();
@@ -414,6 +461,48 @@ export default function LiveRequests() {
     }
   };
 
+  const focusOnRequest = useCallback(
+    (request) => {
+      const coords = getRequestCoordinates(request);
+      if (!coords) return;
+
+      const distanceKm = calculateDistance(
+        gsLocation.lat,
+        gsLocation.lon,
+        coords.lat,
+        coords.lon
+      );
+
+      setViewState((prev) => ({
+        ...prev,
+        longitude: (gsLocation.lon + coords.lon) / 2,
+        latitude: (gsLocation.lat + coords.lat) / 2,
+        zoom: getFocusZoom(distanceKm),
+      }));
+    },
+    [gsLocation.lat, gsLocation.lon]
+  );
+
+  const handleMapMove = useCallback((event) => {
+    const next = normalizeViewState(event?.viewState);
+    setViewState((prev) => (hasViewStateChanged(prev, next) ? next : prev));
+  }, []);
+
+  const handleSelectRequest = useCallback(
+    (request) => {
+      const coords = getRequestCoordinates(request);
+      if (!coords) {
+        setSelectedRequest(request);
+        return;
+      }
+
+      const normalizedRequest = { ...request, lat: coords.lat, lon: coords.lon };
+      setSelectedRequest(normalizedRequest);
+      focusOnRequest(normalizedRequest);
+    },
+    [focusOnRequest]
+  );
+
   // Filter active requests
   const activeRequests = useMemo(() => {
     let filtered = requests.filter(
@@ -445,33 +534,131 @@ export default function LiveRequests() {
 
   // Add distance and bearing
   const requestsWithDistance = useMemo(() => {
-    return activeRequests.map((req) => {
-      if (!req.lat || !req.lon) return { ...req, distance: null, bearing: null };
+    return activeRequests
+      .map((req) => {
+        const coords = getRequestCoordinates(req);
+        if (!coords) {
+          return { ...req, lat: null, lon: null, distance: null, bearing: null, direction: null };
+        }
 
-      const distance = calculateDistance(gsLocation.lat, gsLocation.lon, req.lat, req.lon);
-      const bearing = calculateBearing(gsLocation.lat, gsLocation.lon, req.lat, req.lon);
-      const direction = getDirection(parseFloat(bearing));
+        const distance = calculateDistance(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon);
+        const bearing = calculateBearing(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon);
+        const direction = getDirection(parseFloat(bearing));
 
-      return { ...req, distance, bearing, direction };
-    }).sort((a, b) => (a.distance || 999) - (b.distance || 999));
+        return { ...req, lat: coords.lat, lon: coords.lon, distance, bearing, direction };
+      })
+      .sort((a, b) => (a.distance || 999) - (b.distance || 999));
   }, [activeRequests, gsLocation]);
 
   // Update selected request
   useEffect(() => {
-    if (selectedRequest) {
-      const updated = requestsWithDistance.find(r => r.id === selectedRequest.id);
-      if (updated) {
-        setSelectedRequest(updated);
+    if (!selectedRequest) return;
+
+    const updated = requestsWithDistance.find((r) => r.id === selectedRequest.id);
+    if (updated) {
+      setSelectedRequest(updated);
+    } else {
+      setSelectedRequest(null);
+    }
+  }, [requestsWithDistance, selectedRequest]);
+
+  // Auto-focus the newest incoming request so GS -> user location is visible immediately.
+  useEffect(() => {
+    const newestActiveWithCoords = activeRequests.find((req) => getRequestCoordinates(req));
+
+    if (!newestActiveWithCoords) {
+      latestRequestIdRef.current = null;
+      if (selectedRequest) {
+        setSelectedRequest(null);
+      }
+      return;
+    }
+
+    const newestId = newestActiveWithCoords.id;
+    const hasNewIncomingRequest =
+      latestRequestIdRef.current !== null && latestRequestIdRef.current !== newestId;
+    const selectedStillVisible = selectedRequest
+      ? requestsWithDistance.some((req) => req.id === selectedRequest.id)
+      : false;
+
+    if (hasNewIncomingRequest || !selectedStillVisible) {
+      const normalizedNewest = requestsWithDistance.find((req) => req.id === newestId);
+      if (normalizedNewest) {
+        handleSelectRequest(normalizedNewest);
       }
     }
-  }, [requestsWithDistance]);
+
+    latestRequestIdRef.current = newestId;
+  }, [activeRequests, requestsWithDistance, selectedRequest, handleSelectRequest]);
+
+  // Fetch road route for selected request and render path along roads.
+  useEffect(() => {
+    const coords = getRequestCoordinates(selectedRequest);
+
+    if (!coords || !Number.isFinite(gsLocation.lat) || !Number.isFinite(gsLocation.lon)) {
+      setRoadRoute(null);
+      setRouteLoading(false);
+      return;
+    }
+
+    const from = `${gsLocation.lon.toFixed(6)},${gsLocation.lat.toFixed(6)}`;
+    const to = `${coords.lon.toFixed(6)},${coords.lat.toFixed(6)}`;
+
+    if (from === to) {
+      setRoadRoute({
+        path: [[gsLocation.lon, gsLocation.lat], [coords.lon, coords.lat]],
+        distanceKm: 0,
+        durationMin: 0,
+      });
+      setRouteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const url = `${OSRM_ROUTE_BASE}/${from};${to}?overview=full&geometries=geojson&alternatives=false&steps=false`;
+
+    setRouteLoading(true);
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Routing request failed (${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        const route = data?.routes?.[0];
+        const path = route?.geometry?.coordinates;
+
+        if (data?.code === "Ok" && Array.isArray(path) && path.length > 1) {
+          setRoadRoute({
+            path,
+            distanceKm: route.distance / 1000,
+            durationMin: route.duration / 60,
+          });
+          return;
+        }
+
+        setRoadRoute(null);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          console.warn("Road route unavailable, using direct path:", err.message);
+          setRoadRoute(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setRouteLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [selectedRequest?.id, selectedRequest?.lat, selectedRequest?.lon, gsLocation.lat, gsLocation.lon]);
 
   // Create deck.gl layers
   const layers = useMemo(() => {
     const markerLayers = [];
-
-    console.log("🔍 DEBUG - selectedRequest:", selectedRequest);
-    console.log("🔍 DEBUG - gsLocation:", gsLocation);
 
     // Ground station marker
     if (gsLocation.lat && gsLocation.lon) {
@@ -485,7 +672,7 @@ export default function LiveRequests() {
           }],
           getPosition: d => d.position,
           getRadius: d => d.size,
-          getColor: d => [217, 95, 58, 255],
+          getFillColor: d => [0, 102, 204, 255],
           onHover: ({ object }) => {
             if (object?.isGS) {
               document.body.style.cursor = "pointer";
@@ -507,8 +694,8 @@ export default function LiveRequests() {
           }],
           getPosition: d => d.position,
           getRadius: d => d.radius,
-          getFillColor: [217, 95, 58, 20],
-          getLineColor: [217, 95, 58, 100],
+          getFillColor: [0, 102, 204, 20],
+          getLineColor: [0, 102, 204, 100],
           getLineWidth: 2,
           stroked: true,
           filled: true,
@@ -535,7 +722,7 @@ export default function LiveRequests() {
           data: requestMarkers,
           getPosition: d => d.position,
           getRadius: d => d.size / 2,
-          getColor: d => [...d.color, 255],
+          getFillColor: d => [...d.color, 255],
           onHover: ({ object }) => {
             if (object) {
               document.body.style.cursor = "pointer";
@@ -543,7 +730,7 @@ export default function LiveRequests() {
           },
           onClick: ({ object }) => {
             if (object?.data) {
-              setSelectedRequest(object.data);
+              handleSelectRequest(object.data);
             }
           },
           pickable: true,
@@ -551,62 +738,97 @@ export default function LiveRequests() {
       );
     }
 
-    // Connection line from ground station to selected request
-    if (selectedRequest && selectedRequest.lat && selectedRequest.lon && gsLocation.lat && gsLocation.lon) {
-      console.log("✅ Creating connection line!");
-      console.log("  GS: [", gsLocation.lon, ",", gsLocation.lat, "]");
-      console.log("  REQ: [", selectedRequest.lon, ",", selectedRequest.lat, "]");
-      
-      const lineData = [
-        {
-          sourcePosition: [gsLocation.lon, gsLocation.lat],
-          targetPosition: [selectedRequest.lon, selectedRequest.lat],
-        }
+    // Connection path from ground station to selected request (road-based when available).
+    const hasSelectedCoords = Number.isFinite(selectedRequest?.lat) && Number.isFinite(selectedRequest?.lon);
+    if (hasSelectedCoords && Number.isFinite(gsLocation.lat) && Number.isFinite(gsLocation.lon)) {
+      const fallbackPath = [
+        [gsLocation.lon, gsLocation.lat],
+        [selectedRequest.lon, selectedRequest.lat],
       ];
+      const hasRoadPath = Array.isArray(roadRoute?.path) && roadRoute.path.length > 1;
+      const routePath = hasRoadPath ? roadRoute.path : fallbackPath;
+      const routeDistanceKm = Number.isFinite(roadRoute?.distanceKm)
+        ? roadRoute.distanceKm
+        : Number.isFinite(selectedRequest.distance)
+          ? selectedRequest.distance
+          : calculateDistance(gsLocation.lat, gsLocation.lon, selectedRequest.lat, selectedRequest.lon);
 
       markerLayers.push(
-        new LineLayer({
-          id: "connection-line-glow",
-          data: lineData,
-          getSourcePosition: d => d.sourcePosition,
-          getTargetPosition: d => d.targetPosition,
-          getColor: [217, 95, 58, 100],
-          getWidth: 8,
-          widthMinPixels: 3,
-          widthMaxPixels: 12,
+        new PathLayer({
+          id: "connection-route-glow",
+          data: [{ path: routePath }],
+          getPath: (d) => d.path,
+          getColor: [0, 102, 204, 110],
+          getWidth: 9,
+          widthMinPixels: 4,
+          widthMaxPixels: 13,
+          capRounded: true,
+          jointRounded: true,
           pickable: false,
         })
       );
 
       markerLayers.push(
-        new LineLayer({
-          id: "connection-line",
-          data: lineData,
-          getSourcePosition: d => d.sourcePosition,
-          getTargetPosition: d => d.targetPosition,
-          getColor: [217, 95, 58, 220],
-          getWidth: 3,
+        new PathLayer({
+          id: "connection-route",
+          data: [{ path: routePath }],
+          getPath: (d) => d.path,
+          getColor: [217, 95, 58, 225],
+          getWidth: 4,
           widthMinPixels: 2,
-          widthMaxPixels: 8,
+          widthMaxPixels: 9,
+          capRounded: true,
+          jointRounded: true,
           pickable: false,
         })
       );
-    } else {
-      console.log("❌ Line condition not met:");
-      console.log("  selectedRequest:", selectedRequest ? "✓" : "✗");
-      console.log("  lat:", selectedRequest?.lat ? "✓" : "✗");
-      console.log("  lon:", selectedRequest?.lon ? "✓" : "✗");
-      console.log("  gsLocation.lat:", gsLocation.lat ? "✓" : "✗");
-      console.log("  gsLocation.lon:", gsLocation.lon ? "✓" : "✗");
+
+      const labelPosition = routePath[Math.floor(routePath.length / 2)] || fallbackPath[0];
+
+      markerLayers.push(
+        new TextLayer({
+          id: "connection-distance-label",
+          data: [
+            {
+              position: labelPosition,
+              label: `${routeDistanceKm.toFixed(1)} km${hasRoadPath ? " • Road" : " • Direct"}`,
+            },
+          ],
+          getPosition: (d) => d.position,
+          getText: (d) => d.label,
+          getSize: 13,
+          sizeUnits: "pixels",
+          getColor: [15, 23, 42, 255],
+          background: true,
+          getBackgroundColor: [255, 255, 255, 235],
+          getBorderColor: [0, 102, 204, 180],
+          getBorderWidth: 1,
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "center",
+          billboard: true,
+          pickable: false,
+        })
+      );
     }
 
     return markerLayers;
-  }, [requestsWithDistance, gsLocation, selectedRequest]);
+  }, [requestsWithDistance, gsLocation, selectedRequest, handleSelectRequest, roadRoute]);
+
+  const selectedRouteDistanceKm = useMemo(() => {
+    if (!selectedRequest) return null;
+    if (Number.isFinite(roadRoute?.distanceKm)) return roadRoute.distanceKm;
+    return Number.isFinite(selectedRequest.distance) ? selectedRequest.distance : null;
+  }, [selectedRequest, roadRoute]);
+
+  const selectedRouteDurationMin = Number.isFinite(roadRoute?.durationMin)
+    ? roadRoute.durationMin
+    : null;
+  const hasRoadRoute = Boolean(roadRoute?.path?.length > 1);
 
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: "16px" }}>
-        <div style={{ width: "48px", height: "48px", border: "3px solid rgba(217, 95, 58, 0.2)", borderTop: "3px solid #d95f3a", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <div style={{ width: "48px", height: "48px", border: "3px solid rgba(0, 102, 204, 0.2)", borderTop: "3px solid #0066cc", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>Loading live requests...</span>
       </div>
     );
@@ -615,10 +837,10 @@ export default function LiveRequests() {
   return (
     <div style={{ display: "flex", height: "100%", background: "var(--bg-primary)", overflow: "hidden" }}>
       {/* Left Panel */}
-      <div style={{ width: "420px", flexShrink: 0, display: "flex", flexDirection: "column", borderRight: "1px solid rgba(217, 95, 58, 0.1)", height: "100%", overflowY: "auto" }}>
-        <div style={{ padding: "24px", borderBottom: "1px solid rgba(217, 95, 58, 0.1)" }}>
+      <div style={{ width: "420px", flexShrink: 0, display: "flex", flexDirection: "column", borderRight: "1px solid rgba(0, 102, 204, 0.1)", height: "100%", overflowY: "auto" }}>
+        <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.1)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-            <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #d95f3a, #1e6f8f)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #0066cc, #004a99)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Radio size={24} color="white" />
             </div>
             <div>
@@ -633,8 +855,8 @@ export default function LiveRequests() {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            background: "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(30, 111, 143, 0.02))",
-            border: "1px solid rgba(217, 95, 58, 0.15)",
+            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 102, 204, 0.02))",
+            border: "1px solid rgba(0, 102, 204, 0.15)",
             borderRadius: "10px",
             padding: "10px 14px",
             marginBottom: "12px",
@@ -658,7 +880,7 @@ export default function LiveRequests() {
               <button
                 onClick={() => setSearch("")}
                 style={{
-                  background: "rgba(217, 74, 63, 0.15)",
+                  background: "rgba(0, 102, 204, 0.15)",
                   border: "none",
                   borderRadius: "6px",
                   padding: "4px",
@@ -686,10 +908,10 @@ export default function LiveRequests() {
                 style={{
                   flex: 1,
                   padding: "10px",
-                  background: filter === f.value ? "linear-gradient(135deg, rgba(217, 95, 58, 0.2), rgba(30, 111, 143, 0.1))" : "rgba(217, 95, 58, 0.05)",
-                  border: `1px solid ${filter === f.value ? "rgba(217, 95, 58, 0.4)" : "rgba(217, 95, 58, 0.15)"}`,
+                  background: filter === f.value ? "linear-gradient(135deg, rgba(0, 102, 204, 0.2), rgba(0, 102, 204, 0.1))" : "rgba(0, 102, 204, 0.05)",
+                  border: `1px solid ${filter === f.value ? "rgba(217, 95, 58, 0.4)" : "rgba(0, 102, 204, 0.15)"}`,
                   borderRadius: "8px",
-                  color: filter === f.value ? "#d95f3a" : "var(--text-muted)",
+                  color: filter === f.value ? "#0066cc" : "var(--text-muted)",
                   fontSize: "11px",
                   fontWeight: 700,
                   cursor: "pointer",
@@ -700,7 +922,7 @@ export default function LiveRequests() {
                   gap: "4px",
                 }}
               >
-                <f.Icon size={16} color={filter === f.value ? "#d95f3a" : "var(--text-muted)"} />
+                <f.Icon size={16} color={filter === f.value ? "#0066cc" : "var(--text-muted)"} />
                 {f.label}
               </button>
             ))}
@@ -721,14 +943,14 @@ export default function LiveRequests() {
               return (
                 <div
                   key={req.id}
-                  onClick={() => setSelectedRequest(req)}
+                  onClick={() => handleSelectRequest(req)}
                   style={{
                     padding: "16px",
                     marginBottom: "12px",
                     background: selectedRequest?.id === req.id
-                      ? "linear-gradient(135deg, rgba(217, 95, 58, 0.15), rgba(30, 111, 143, 0.08))"
-                      : "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(30, 111, 143, 0.02))",
-                    border: `1px solid ${selectedRequest?.id === req.id ? "rgba(217, 95, 58, 0.4)" : "rgba(217, 95, 58, 0.1)"}`,
+                      ? "linear-gradient(135deg, rgba(0, 102, 204, 0.15), rgba(0, 102, 204, 0.08))"
+                      : "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(0, 102, 204, 0.02))",
+                    border: `1px solid ${selectedRequest?.id === req.id ? "rgba(217, 95, 58, 0.4)" : "rgba(0, 102, 204, 0.1)"}`,
                     borderRadius: "12px",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
@@ -742,7 +964,7 @@ export default function LiveRequests() {
                   }}
                   onMouseLeave={(e) => {
                     if (selectedRequest?.id !== req.id) {
-                      e.currentTarget.style.borderColor = "rgba(217, 95, 58, 0.1)";
+                      e.currentTarget.style.borderColor = "rgba(0, 102, 204, 0.1)";
                       e.currentTarget.style.transform = "translateX(0)";
                     }
                   }}
@@ -755,17 +977,17 @@ export default function LiveRequests() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "rgba(217, 95, 58, 0.15)",
+                        background: "rgba(0, 102, 204, 0.15)",
                         borderRadius: "8px",
                       }}>
                         {req.resource === "Food" ? (
-                          <Utensils size={20} color="#d95f3a" />
+                          <Utensils size={20} color="#0066cc" />
                         ) : req.resource === "Medical" ? (
-                          <Pill size={20} color="#d95f3a" />
+                          <Pill size={20} color="#0066cc" />
                         ) : req.resource === "Shelter" ? (
-                          <Tent size={20} color="#d95f3a" />
+                          <Tent size={20} color="#0066cc" />
                         ) : (
-                          <Package size={20} color="#d95f3a" />
+                          <Package size={20} color="#0066cc" />
                         )}
                       </div>
                       <div>
@@ -789,17 +1011,17 @@ export default function LiveRequests() {
 
                   {req.distance !== null && (
                     <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(30, 111, 143, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
-                        <Navigation size={16} color="#1e6f8f" />
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0, 102, 204, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
+                        <Navigation size={16} color="#0066cc" />
                         <div>
-                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#1e6f8f" }}>{req.distance.toFixed(1)} km</div>
+                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#0066cc" }}>{req.distance.toFixed(1)} km</div>
                           <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>Distance</div>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(217, 95, 58, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
-                        <MapPin size={16} color="#d95f3a" />
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0, 102, 204, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
+                        <MapPin size={16} color="#0066cc" />
                         <div>
-                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#d95f3a" }}>{req.bearing}° {req.direction}</div>
+                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#0066cc" }}>{req.bearing}° {req.direction}</div>
                           <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>Bearing</div>
                         </div>
                       </div>
@@ -824,7 +1046,7 @@ export default function LiveRequests() {
                         style={{
                           flex: 1,
                           padding: "10px",
-                          background: "linear-gradient(135deg, #2f9e73, #1e6f8f)",
+                          background: "#0066cc",
                           border: "none",
                           borderRadius: "8px",
                           color: "#ffffff",
@@ -837,6 +1059,7 @@ export default function LiveRequests() {
                           gap: "6px",
                           opacity: processingId === req.id ? 0.6 : 1,
                           transition: "all 0.2s ease",
+                          boxShadow: "0 2px 8px rgba(0, 102, 204, 0.25)",
                         }}
                       >
                         {processingId === req.id ? (
@@ -855,7 +1078,7 @@ export default function LiveRequests() {
                         style={{
                           flex: 1,
                           padding: "10px",
-                          background: "linear-gradient(135deg, #d95f3a, #c8653d)",
+                          background: "linear-gradient(135deg, #0066cc, #c8653d)",
                           border: "none",
                           borderRadius: "8px",
                           color: "#ffffff",
@@ -886,7 +1109,7 @@ export default function LiveRequests() {
                         style={{
                           flex: 1,
                           padding: "10px",
-                          background: "linear-gradient(135deg, #1e6f8f, #2f8fb6)",
+                          background: "linear-gradient(135deg, #0066cc, #0066cc)",
                           border: "none",
                           borderRadius: "8px",
                           color: "#ffffff",
@@ -916,9 +1139,9 @@ export default function LiveRequests() {
           )}
         </div>
 
-        <div style={{ padding: "16px", borderTop: "1px solid rgba(217, 95, 58, 0.1)", background: "rgba(217, 95, 58, 0.03)" }}>
+        <div style={{ padding: "16px", borderTop: "1px solid rgba(0, 102, 204, 0.1)", background: "rgba(217, 95, 58, 0.03)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg, #d95f3a, #1e6f8f)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg, #0066cc, #0066cc)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Building2 size={20} color="white" />
             </div>
             <div style={{ flex: 1 }}>
@@ -930,7 +1153,7 @@ export default function LiveRequests() {
             <button
               onClick={() => setShowGSSettings(true)}
               style={{
-                background: "rgba(217, 95, 58, 0.15)",
+                background: "rgba(0, 102, 204, 0.15)",
                 border: "1px solid rgba(217, 95, 58, 0.3)",
                 borderRadius: "8px",
                 padding: "8px",
@@ -942,7 +1165,7 @@ export default function LiveRequests() {
               }}
               title="Change Ground Station Location"
             >
-              <Settings size={16} color="#d95f3a" />
+              <Settings size={16} color="#0066cc" />
             </button>
           </div>
         </div>
@@ -956,7 +1179,7 @@ export default function LiveRequests() {
             top: "16px",
             left: "50%",
             transform: "translateX(-50%)",
-            background: "linear-gradient(135deg, #d95f3a, #1e6f8f)",
+            background: "linear-gradient(135deg, #0066cc, #0066cc)",
             color: "white",
             padding: "12px 24px",
             borderRadius: "12px",
@@ -985,45 +1208,71 @@ export default function LiveRequests() {
           </div>
         )}
 
-        <MapLibreMap
-          reuseMaps
-          mapLib={maplibregl}
-          mapStyle={OSM_RASTER_STYLE}
+        <DeckGL
           viewState={viewState}
-          onMove={({ viewState: vs }) => setViewState(vs)}
-          attributionControl={true}
-          navigationControl={true}
-          dragPan={true}
-          dragRotate={false}
-          doubleClickZoom={true}
-          scrollZoom={true}
-          boxZoom={true}
-          touchZoom={true}
-          touchPitch={false}
-          pitchWithRotate={false}
+          controller={false}
+          layers={layers}
+          onClick={(info) => {
+            if (isSelectingOnMap) {
+              handleMapClick(info);
+            }
+          }}
+          getCursor={() => (isSelectingOnMap ? "crosshair" : "grab")}
           style={{ width: "100%", height: "100%" }}
         >
-          <DeckGL
-            ref={mapRef}
+          <MapLibreMap
+            mapLib={maplibregl}
+            mapStyle={OSM_RASTER_STYLE}
             viewState={viewState}
-            controller={false}
-            layers={layers}
-            onClick={(info) => {
-              if (isSelectingOnMap) {
-                handleMapClick(info);
-              }
-            }}
-            getCursor={() => (isSelectingOnMap ? "crosshair" : "grab")}
+            onMove={handleMapMove}
+            attributionControl={true}
+            dragPan={true}
+            dragRotate={false}
+            doubleClickZoom={true}
+            scrollZoom={true}
+            boxZoom={true}
+            touchZoom={true}
+            touchPitch={false}
+            pitchWithRotate={false}
+            style={{ width: "100%", height: "100%" }}
           />
-        </MapLibreMap>
+        </DeckGL>
+
+        {selectedRequest && selectedRouteDistanceKm !== null && (
+          <div
+            style={{
+              position: "absolute",
+              top: "16px",
+              left: "16px",
+              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.96))",
+              border: "1px solid rgba(0, 102, 204, 0.3)",
+              borderRadius: "12px",
+              padding: "12px 14px",
+              zIndex: 1000,
+              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+              minWidth: "190px",
+            }}
+          >
+            <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>
+              {routeLoading ? "Finding road route..." : hasRoadRoute ? "Live Road Route" : "Direct Route (Fallback)"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#0066cc", fontWeight: 900, fontSize: "22px", lineHeight: 1 }}>
+              <Navigation size={18} />
+              {selectedRouteDistanceKm.toFixed(1)} km
+            </div>
+            <div style={{ marginTop: "4px", fontSize: "11px", color: "var(--text-secondary)" }}>
+              {selectedRouteDurationMin !== null ? `ETA ${Math.round(selectedRouteDurationMin)} min • ` : ""}
+              {selectedRequest.bearing ? `Bearing ${selectedRequest.bearing}° ${selectedRequest.direction}` : "Route selected"}
+            </div>
+          </div>
+        )}
 
         {/* Map Legend */}
         <div style={{
           position: "absolute",
           top: "16px",
           right: "16px",
-          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95))",
-          backdropFilter: "blur(20px)",
+          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
           border: "1px solid rgba(217, 95, 58, 0.3)",
           borderRadius: "12px",
           padding: "16px",
@@ -1035,8 +1284,8 @@ export default function LiveRequests() {
             <button
               onClick={() => setIsSelectingOnMap(true)}
               style={{
-                background: "rgba(30, 111, 143, 0.15)",
-                border: "1px solid rgba(30, 111, 143, 0.3)",
+                background: "rgba(0, 102, 204, 0.15)",
+                border: "1px solid rgba(0, 102, 204, 0.3)",
                 borderRadius: "6px",
                 padding: "4px 8px",
                 cursor: "pointer",
@@ -1045,7 +1294,7 @@ export default function LiveRequests() {
                 gap: "4px",
                 fontSize: "10px",
                 fontWeight: 700,
-                color: "#1e6f8f",
+                color: "#0066cc",
               }}
               title="Click on map to set Ground Station"
             >
@@ -1054,11 +1303,15 @@ export default function LiveRequests() {
             </button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "16px", height: "4px", background: "#d95f3a", borderRadius: "999px" }} />
+              <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Road Route</span>
+            </div>
             {[
-              { label: "Ground Station", color: "#d95f3a" },
+              { label: "Ground Station", color: "#0066cc" },
               { label: "Pending", color: "#d9a441" },
-              { label: "Assigned", color: "#2f8fb6" },
-              { label: "In Transit", color: "#d95f3a" },
+              { label: "Assigned", color: "#0066cc" },
+              { label: "In Transit", color: "#0066cc" },
               { label: "Urgent", color: "#d94a3f" },
             ].map((item) => (
               <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1080,16 +1333,15 @@ export default function LiveRequests() {
           zIndex: 1000,
         }}>
           {[
-            { label: "Total Active", value: activeRequests.length, Icon: MapPin, color: "#2f8fb6" },
+            { label: "Total Active", value: activeRequests.length, Icon: MapPin, color: "#0066cc" },
             { label: "Urgent", value: activeRequests.filter(r => r.status === "Urgent" || r.urgency === "Critical").length, Icon: AlertCircle, color: "#d94a3f" },
-            { label: "Nearest", value: requestsWithDistance[0]?.distance ? `${requestsWithDistance[0].distance.toFixed(1)} km` : "N/A", Icon: Ruler, color: "#1e6f8f" },
+            { label: "Nearest", value: requestsWithDistance[0]?.distance ? `${requestsWithDistance[0].distance.toFixed(1)} km` : "N/A", Icon: Ruler, color: "#0066cc" },
           ].map((stat) => (
             <div
               key={stat.label}
               style={{
                 flex: 1,
-                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95))",
-                backdropFilter: "blur(20px)",
+                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
                 border: "1px solid rgba(217, 95, 58, 0.3)",
                 borderRadius: "12px",
                 padding: "12px 16px",
@@ -1111,8 +1363,7 @@ export default function LiveRequests() {
           <button
             title="Real-time updates active via Socket.IO"
             style={{
-              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95))",
-              backdropFilter: "blur(20px)",
+              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
               border: "1px solid rgba(47, 158, 115, 0.4)",
               borderRadius: "12px",
               padding: "12px 16px",
@@ -1150,11 +1401,10 @@ export default function LiveRequests() {
             position: "fixed",
             top: 0,
             right: 0,
-            width: "400px",
+            width: "420px",
             height: "100vh",
-            background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98))",
-            backdropFilter: "blur(20px)",
-            borderLeft: "1px solid rgba(217, 95, 58, 0.2)",
+            background: "#f5f7fa",
+            borderLeft: "1px solid rgba(0, 102, 204, 0.2)",
             zIndex: 1500,
             display: "flex",
             flexDirection: "column",
@@ -1162,22 +1412,37 @@ export default function LiveRequests() {
             boxShadow: "-10px 0 30px rgba(0, 0, 0, 0.1)"
           }}
         >
-          <div style={{ padding: "20px", borderBottom: "1px solid rgba(217, 95, 58, 0.15)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{ width: "48px", height: "48px", background: `rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]})`, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* Header */}
+          <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.2)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flex: 1 }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  background: `linear-gradient(135deg, rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}), rgb(${Math.max(0, statusColors[selectedRequest.status][0]-40)}, ${Math.max(0, statusColors[selectedRequest.status][1]-40)}, ${Math.max(0, statusColors[selectedRequest.status][2]-40)}))`,
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: `0 4px 12px rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`
+                }}>
                 {selectedRequest.resource === "Food" ? (
-                  <Utensils size={24} color="white" />
+                  <Utensils size={28} color="white" />
                 ) : selectedRequest.resource === "Medical" ? (
-                  <Pill size={24} color="white" />
+                  <Pill size={28} color="white" />
                 ) : selectedRequest.resource === "Shelter" ? (
-                  <Tent size={24} color="white" />
+                  <Tent size={28} color="white" />
                 ) : (
-                  <Package size={24} color="white" />
+                  <Package size={28} color="white" />
                 )}
               </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>{selectedRequest.resource}</h3>
-                <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "var(--text-muted)" }}>#{selectedRequest.id?.toString().slice(-8).toUpperCase()}</p>
+              <div style={{ flex: 1 }}>
+                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "4px" }}>{selectedRequest.resource}</h2>
+                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>Request #{selectedRequest.id?.toString().slice(-6).toUpperCase()}</p>
+                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Clock size={12} />
+                  {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </div>
               </div>
             </div>
             <button
@@ -1188,15 +1453,34 @@ export default function LiveRequests() {
                 borderRadius: "8px",
                 padding: "8px",
                 cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(217, 74, 63, 0.25)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(217, 74, 63, 0.15)";
               }}
             >
               <X size={20} color="#d94a3f" />
             </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          {/* Status Badge */}
+          <div style={{ padding: "0 24px", marginTop: "12px" }}>
+            <div style={{ display: "inline-block", padding: "6px 14px", background: `rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`, border: `1px solid rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.3)`, borderRadius: "8px", fontSize: "11px", fontWeight: 700, color: `rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]})` }}>
+              {selectedRequest.status}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+            {/* Delivery Progress */}
+            <div style={{ marginBottom: "28px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                 Delivery Progress
               </label>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1211,21 +1495,21 @@ export default function LiveRequests() {
                     <div key={stage} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                       <div
                         style={{
-                          width: "36px",
-                          height: "36px",
+                          width: "40px",
+                          height: "40px",
                           borderRadius: "50%",
-                          background: isActive ? `rgb(${statusColors[stage][0]}, ${statusColors[stage][1]}, ${statusColors[stage][2]})` : "rgba(217, 95, 58, 0.1)",
-                          border: isCurrent ? "3px solid rgba(217, 95, 58, 0.6)" : "2px solid transparent",
+                          background: `linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04))`,
+                          border: isCurrent ? "3px solid rgba(217, 95, 58, 0.5)" : "2px solid transparent",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          boxShadow: isCurrent ? "0 0 20px rgba(217, 95, 58, 0.3)" : "none",
+                          boxShadow: isCurrent ? "0 0 16px rgba(217, 95, 58, 0.25)" : "none",
                           transition: "all 0.3s ease",
                         }}
                       >
-                        <StageIcon size={18} color="white" />
+                        <StageIcon size={18} color={isActive ? "white" : "var(--text-muted)"} />
                       </div>
-                      <span style={{ fontSize: "9px", color: isActive ? "var(--text-primary)" : "var(--text-muted)", marginTop: "6px", fontWeight: isCurrent ? 700 : 400 }}>
+                      <span style={{ fontSize: "10px", color: isActive ? "var(--text-primary)" : "var(--text-muted)", marginTop: "8px", fontWeight: isCurrent ? 700 : 500, textAlign: "center" }}>
                         {stage}
                       </span>
                     </div>
@@ -1234,60 +1518,62 @@ export default function LiveRequests() {
               </div>
             </div>
 
+            {/* Distance & Bearing */}
             {selectedRequest.distance && (
-              <div style={{ marginBottom: "24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ padding: "16px", background: "rgba(30, 111, 143, 0.1)", border: "1px solid rgba(30, 111, 143, 0.2)", borderRadius: "12px" }}>
-                  <Navigation size={20} color="#1e6f8f" style={{ marginBottom: "8px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#1e6f8f" }}>{selectedRequest.distance.toFixed(1)}</div>
-                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Kilometers</div>
+              <div style={{ marginBottom: "28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
+                  <Navigation size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
+                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.distance.toFixed(1)}</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Kilometers</div>
                 </div>
-                <div style={{ padding: "16px", background: "rgba(217, 95, 58, 0.1)", border: "1px solid rgba(217, 95, 58, 0.2)", borderRadius: "12px" }}>
-                  <MapPin size={20} color="#d95f3a" style={{ marginBottom: "8px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#d95f3a" }}>{selectedRequest.bearing}°</div>
-                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Bearing {selectedRequest.direction}</div>
+                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
+                  <MapPin size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
+                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.bearing}°</div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Bearing {selectedRequest.direction}</div>
                 </div>
               </div>
             )}
 
+            {/* Request Details Sections */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-                Request Details
+              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+                Details
               </label>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {selectedRequest.state && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "rgba(217, 95, 58, 0.1)", border: "1px solid rgba(217, 95, 58, 0.2)", borderRadius: "10px" }}>
-                    <MapPin size={18} color="#d95f3a" />
-                    <div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>State</div>
-                      <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.state}</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
+                    <MapPin size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>State</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.state}</div>
                     </div>
                   </div>
                 )}
 
                 {selectedRequest.people_affected && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "rgba(217, 74, 63, 0.1)", border: "1px solid rgba(217, 74, 63, 0.2)", borderRadius: "10px" }}>
-                    <User size={18} color="#d94a3f" />
-                    <div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>People Affected</div>
-                      <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.people_affected}</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(220, 38, 38, 0.25)", borderRadius: "10px" }}>
+                    <User size={18} color="#dc2626" style={{ marginTop: "2px", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>People Affected</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.people_affected}</div>
                     </div>
                   </div>
                 )}
 
                 {selectedRequest.disaster_type && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "rgba(217, 164, 65, 0.1)", border: "1px solid rgba(217, 164, 65, 0.2)", borderRadius: "10px" }}>
-                    <AlertTriangle size={18} color="#d9a441" />
-                    <div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Disaster Type</div>
-                      <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.disaster_type}</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(217, 164, 65, 0.3)", borderRadius: "10px" }}>
+                    <AlertTriangle size={18} color="#d9a441" style={{ marginTop: "2px", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Disaster Type</div>
+                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.disaster_type}</div>
                     </div>
                   </div>
                 )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "rgba(30, 111, 143, 0.1)", border: "1px solid rgba(30, 111, 143, 0.2)", borderRadius: "10px" }}>
-                  <Clock size={18} color="#1e6f8f" />
-                  <div>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Requested At</div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
+                  <Clock size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Requested At</div>
                     <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>
                       {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleString("en-IN")}
                     </div>
@@ -1295,21 +1581,22 @@ export default function LiveRequests() {
                 </div>
 
                 {selectedRequest.note && (
-                  <div style={{ padding: "12px", background: "rgba(217, 95, 58, 0.1)", border: "1px solid rgba(217, 95, 58, 0.2)", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "6px" }}>Note</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.5" }}>{selectedRequest.note}</div>
+                  <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Note</div>
+                    <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.6" }}>{selectedRequest.note}</div>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* GPS Coordinates */}
             {selectedRequest.lat && selectedRequest.lon && (
               <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
                   GPS Coordinates
                 </label>
-                <div style={{ padding: "12px", background: "rgba(47, 158, 115, 0.1)", border: "1px solid rgba(47, 158, 115, 0.2)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <code style={{ fontSize: "12px", color: "#2f9e73" }}>
+                <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(47, 158, 115, 0.3)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <code style={{ fontSize: "12px", color: "#2f9e73", fontFamily: "monospace", fontWeight: 600 }}>
                     {selectedRequest.lat.toFixed(6)}, {selectedRequest.lon.toFixed(6)}
                   </code>
                   <button
@@ -1319,13 +1606,20 @@ export default function LiveRequests() {
                     }}
                     style={{
                       background: "rgba(47, 158, 115, 0.15)",
-                      border: "1px solid rgba(47, 158, 115, 0.3)",
+                      border: "1px solid rgba(47, 158, 115, 0.4)",
                       borderRadius: "6px",
                       padding: "6px 10px",
                       cursor: "pointer",
                       fontSize: "10px",
                       fontWeight: 700,
                       color: "#2f9e73",
+                      transition: "all 0.2s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.2)";
                     }}
                   >
                     Copy
@@ -1335,7 +1629,8 @@ export default function LiveRequests() {
             )}
           </div>
 
-          <div style={{ padding: "20px", borderTop: "1px solid rgba(217, 95, 58, 0.1)", display: "flex", gap: "12px", background: "rgba(217, 95, 58, 0.02)" }}>
+          {/* Action Buttons */}
+          <div style={{ padding: "24px", borderTop: "1px solid rgba(0, 102, 204, 0.15)", display: "flex", gap: "12px", background: "#ffffff" }}>
             {(selectedRequest.status === "Pending" || selectedRequest.status === "Urgent") && (
               <button
                 onClick={(e) => handleAccept(selectedRequest.id, e)}
@@ -1343,7 +1638,7 @@ export default function LiveRequests() {
                 style={{
                   flex: 1,
                   padding: "14px",
-                  background: "linear-gradient(135deg, #2f9e73, #1e6f8f)",
+                  background: "#0066cc",
                   border: "none",
                   borderRadius: "10px",
                   color: "#ffffff",
@@ -1355,6 +1650,8 @@ export default function LiveRequests() {
                   justifyContent: "center",
                   gap: "8px",
                   opacity: processingId === selectedRequest.id ? 0.6 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)",
                 }}
               >
                 <CheckCircle size={18} />
@@ -1369,7 +1666,7 @@ export default function LiveRequests() {
                 style={{
                   flex: 1,
                   padding: "14px",
-                  background: "linear-gradient(135deg, #d95f3a, #c8653d)",
+                  background: "#0066cc",
                   border: "none",
                   borderRadius: "10px",
                   color: "#ffffff",
@@ -1381,6 +1678,8 @@ export default function LiveRequests() {
                   justifyContent: "center",
                   gap: "8px",
                   opacity: processingId === selectedRequest.id ? 0.6 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
                 }}
               >
                 <Send size={18} />
@@ -1395,7 +1694,7 @@ export default function LiveRequests() {
                 style={{
                   flex: 1,
                   padding: "14px",
-                  background: "linear-gradient(135deg, #1e6f8f, #2f8fb6)",
+                  background: "#0066cc",
                   border: "none",
                   borderRadius: "10px",
                   color: "#ffffff",
@@ -1407,6 +1706,8 @@ export default function LiveRequests() {
                   justifyContent: "center",
                   gap: "8px",
                   opacity: processingId === selectedRequest.id ? 0.6 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
                 }}
               >
                 <Truck size={18} />

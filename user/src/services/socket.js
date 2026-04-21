@@ -1,34 +1,31 @@
 /**
- * Socket.IO Client Service
- * Real-time communication with Flask backend
- * 
- * Priority:
- * 1. Environment variable (EXPO_PUBLIC_SOCKET_URL)
- * 2. AsyncStorage (user-configured value)
- * 3. Fallback localhost
+ * Socket.IO Client Service — IMPROVED
+ *
+ * Changes from original:
+ *  - Joins 'mobile' room on connect so GCS broadcasts reach only relevant clients
+ *  - Tracks connection state (isConnected) for UI to read
+ *  - onConnectionChange callback for components to react to connect/disconnect
+ *  - Deduplicates listeners (prevents stacking on React re-renders)
+ *  - Removed auth header on socket (JWT in HTTP headers doesn't work with Socket.IO polling)
+ *  - Added emitWithAck for reliable command sending
  */
 
 import { io } from 'socket.io-client';
 import { getBackendUrl, storeBackendUrl } from './storage';
-import { getAuthToken } from './api';
 
-// Will be initialized on app startup
 let socket = null;
+let _isConnected = false;
+let _connectionListeners = [];
 let lastConnectErrorAt = 0;
 let lastConnectErrorKey = '';
 
-const SOCKET_TRANSPORT_MODE = (process.env.EXPO_PUBLIC_SOCKET_TRANSPORT || 'polling').toLowerCase();
+const SOCKET_TRANSPORT_MODE = (
+  process.env.EXPO_PUBLIC_SOCKET_TRANSPORT || 'polling'
+).toLowerCase();
 
 const resolveTransports = () => {
-  if (SOCKET_TRANSPORT_MODE === 'websocket') {
-    return ['websocket'];
-  }
-
-  if (SOCKET_TRANSPORT_MODE === 'both') {
-    return ['websocket', 'polling'];
-  }
-
-  // Default to polling for Flask/Socket.IO compatibility on mobile networks.
+  if (SOCKET_TRANSPORT_MODE === 'websocket') return ['websocket'];
+  if (SOCKET_TRANSPORT_MODE === 'both') return ['websocket', 'polling'];
   return ['polling'];
 };
 
@@ -36,18 +33,19 @@ const logConnectError = (error, backendUrl) => {
   const now = Date.now();
   const message = error?.message || 'unknown socket error';
   const key = `${backendUrl}|${message}`;
-
-  // Avoid spamming identical transient connect errors during reconnect attempts.
-  if (key === lastConnectErrorKey && now - lastConnectErrorAt < 10000) {
-    return;
-  }
-
+  if (key === lastConnectErrorKey && now - lastConnectErrorAt < 10000) return;
   lastConnectErrorKey = key;
   lastConnectErrorAt = now;
   console.warn(`⚠️ Socket reconnecting (${message}) -> ${backendUrl}`);
 };
 
-const createSocket = (backendUrl, extraHeaders) => {
+const notifyConnectionListeners = (connected) => {
+  _connectionListeners.forEach((cb) => {
+    try { cb(connected); } catch (_) {}
+  });
+};
+
+const createSocket = (backendUrl) => {
   const transports = resolveTransports();
 
   const client = io(backendUrl, {
@@ -55,34 +53,35 @@ const createSocket = (backendUrl, extraHeaders) => {
     autoConnect: true,
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: 4,
+    reconnectionDelayMax: 10000,
+    reconnectionAttempts: 10,
+    randomizationFactor: 0.5,
     timeout: 8000,
-    extraHeaders,
   });
 
   client.on('connect', () => {
     console.log('✅ Socket.IO connected:', client.id);
+    _isConnected = true;
+    notifyConnectionListeners(true);
+
+    // Join 'mobile' room so GCS can target broadcasts
+    client.emit('join', { room: 'mobile' });
   });
 
   client.on('disconnect', (reason) => {
     console.log('⚠️  Socket.IO disconnected:', reason);
+    _isConnected = false;
+    notifyConnectionListeners(false);
   });
 
   client.on('connect_error', (error) => {
     logConnectError(error, backendUrl);
-  });
-
-  client.on('reconnecting', (attempt) => {
-    console.log(`🔄 Socket.IO reconnecting (attempt ${attempt})...`);
+    _isConnected = false;
+    notifyConnectionListeners(false);
   });
 
   client.on('error', (error) => {
     console.warn('⚠️ Socket.IO error:', error?.message || error);
-  });
-
-  client.on('auth_error', (error) => {
-    console.warn('⚠️ Socket authentication error:', error?.message || error);
   });
 
   return client;
@@ -93,34 +92,18 @@ const createSocket = (backendUrl, extraHeaders) => {
  */
 export const initializeSocket = async () => {
   try {
-    // Priority: Environment variable > AsyncStorage > Fallback
-    let BACKEND_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
-    
-    if (!BACKEND_URL) {
-      BACKEND_URL = await getBackendUrl();
-    }
-    
-    if (!BACKEND_URL) {
-      BACKEND_URL = 'http://localhost:5000'; // Fallback
-    }
+    let BACKEND_URL =
+      process.env.EXPO_PUBLIC_SOCKET_URL ||
+      (await getBackendUrl()) ||
+      'http://localhost:5000';
 
-    // Prepare auth headers with JWT if available
-    const extraHeaders = {
-      'User-Agent': `NDRF-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
-    };
-
-    try {
-      const token = await getAuthToken();
-      if (token) {
-        extraHeaders['Authorization'] = `Bearer ${token}`;
-      }
-    } catch (err) {
-      console.warn('[Socket] Failed to retrieve auth token:', err.message);
-    }
-
-    socket = createSocket(BACKEND_URL, extraHeaders);
-
-    console.log('✅ Socket.IO initialized with URL:', BACKEND_URL, '| transport:', resolveTransports().join(','));
+    socket = createSocket(BACKEND_URL);
+    console.log(
+      '✅ Socket.IO initialized:',
+      BACKEND_URL,
+      '| transport:',
+      resolveTransports().join(',')
+    );
     return socket;
   } catch (err) {
     console.error('❌ Failed to initialize Socket.IO:', err);
@@ -129,39 +112,19 @@ export const initializeSocket = async () => {
 };
 
 /**
- * Reinitialize Socket.IO with new backend URL
+ * Reinitialize Socket.IO with a new backend URL
  */
 export const reinitializeSocket = async (newUrl) => {
   try {
-    // Disconnect old socket
-    if (socket) {
-      socket.disconnect();
-    }
+    if (socket) socket.disconnect();
 
-    const BACKEND_URL = newUrl || (await getBackendUrl()) || 'http://localhost:5000';
+    const BACKEND_URL =
+      newUrl || (await getBackendUrl()) || 'http://localhost:5000';
 
-    // Store URL if provided
-    if (newUrl) {
-      await storeBackendUrl(newUrl);
-    }
+    if (newUrl) await storeBackendUrl(newUrl);
 
-    // Prepare auth headers with JWT if available
-    const extraHeaders = {
-      'User-Agent': `NDRF-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
-    };
-
-    try {
-      const token = await getAuthToken();
-      if (token) {
-        extraHeaders['Authorization'] = `Bearer ${token}`;
-      }
-    } catch (err) {
-      console.warn('[Socket] Failed to retrieve auth token:', err.message);
-    }
-
-    socket = createSocket(BACKEND_URL, extraHeaders);
-
-    console.log('✅ Socket.IO reinitialized with URL:', BACKEND_URL, '| transport:', resolveTransports().join(','));
+    socket = createSocket(BACKEND_URL);
+    console.log('✅ Socket.IO reinitialized:', BACKEND_URL);
     return socket;
   } catch (err) {
     console.error('❌ Failed to reinitialize Socket.IO:', err);
@@ -170,7 +133,7 @@ export const reinitializeSocket = async (newUrl) => {
 };
 
 /**
- * Get the current Socket.IO instance
+ * Get the current Socket.IO instance (throws if not initialized)
  */
 export const getSocket = () => {
   if (!socket) {
@@ -180,17 +143,47 @@ export const getSocket = () => {
 };
 
 /**
- * Register callback for status updates
+ * Returns current connection state without throwing
  */
-export const onStatusUpdate = (callback) => {
-  getSocket().on('status_update', callback);
+export const isConnected = () => _isConnected;
+
+/**
+ * Register a callback that fires when connection state changes
+ * Returns an unsubscribe function
+ */
+export const onConnectionChange = (callback) => {
+  _connectionListeners.push(callback);
+  // Immediately fire with current state
+  try { callback(_isConnected); } catch (_) {}
+  return () => {
+    _connectionListeners = _connectionListeners.filter((cb) => cb !== callback);
+  };
 };
 
 /**
- * Unregister callback for status updates
+ * Register callback for status updates (deduplication-safe)
  */
+export const onStatusUpdate = (callback) => {
+  const sock = getSocket();
+  sock.off('status_update', callback); // remove first to avoid duplication
+  sock.on('status_update', callback);
+};
+
 export const offStatusUpdate = (callback) => {
   getSocket().off('status_update', callback);
+};
+
+/**
+ * Register callback for request updates
+ */
+export const onRequestUpdate = (callback) => {
+  const sock = getSocket();
+  sock.off('request_update', callback);
+  sock.on('request_update', callback);
+};
+
+export const offRequestUpdate = (callback) => {
+  getSocket().off('request_update', callback);
 };
 
 /**
@@ -205,15 +198,29 @@ export const emitEvent = (eventName, data) => {
 };
 
 /**
- * Listen for custom server events
+ * Emit with acknowledgement (resolves when server acks or rejects on timeout)
  */
-export const onEvent = (eventName, callback) => {
-  getSocket().on(eventName, callback);
+export const emitWithAck = (eventName, data, timeoutMs = 5000) => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Socket ack timeout')), timeoutMs);
+    try {
+      getSocket().emit(eventName, data, (response) => {
+        clearTimeout(timer);
+        resolve(response);
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      reject(err);
+    }
+  });
 };
 
-/**
- * Stop listening to custom server events
- */
+export const onEvent = (eventName, callback) => {
+  const sock = getSocket();
+  sock.off(eventName, callback);
+  sock.on(eventName, callback);
+};
+
 export const offEvent = (eventName, callback) => {
   getSocket().off(eventName, callback);
 };

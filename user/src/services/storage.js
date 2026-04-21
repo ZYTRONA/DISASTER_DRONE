@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const RECENT_REQUESTS_KEY = 'ndrf_recent';
 const APP_LANGUAGE_KEY = 'ndrf_language';
 const BACKEND_URL_KEY = 'ndrf_backend_url';
-const DEFAULT_BACKEND_URL = 'http://10.145.74.62:5000'; // Updated IP address
+const DEFAULT_BACKEND_URL = 'http://10.213.172.62:5000'; // Updated IP address
 
 /**
  * Get recent requests from storage

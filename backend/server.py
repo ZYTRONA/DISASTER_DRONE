@@ -1,50 +1,31 @@
 """
-NDRF Ground Control Station - Backend Server
-Flask + Socket.IO + MySQL (XAMPP)
+NDRF Ground Control Station - Backend Server (MongoDB Atlas Edition)
+Flask + Socket.IO + MongoDB Atlas
 
-Routes (no /api prefix — matches all frontends):
-  POST /request              — submit relief request (no auth)
-  GET  /requests             — list all requests (plain array)
-  GET  /requests/search      — search/filter requests
-  POST /assign/<id>          — assign drone to request
-  POST /in-transit/<id>      — mark in-transit (launch drone)
-  POST /deliver/<id>         — mark delivered
-  POST /user-confirm/<id>    — user confirms receipt
-  GET  /telemetry            — latest telemetry per drone
-  GET  /drones               — list drones
-  GET  /drones/<id>/telemetry — drone telemetry history
-  POST /auth/login
-  POST /auth/register
-  POST /auth/logout
-  GET  /auth/me
-  GET  /health
-
-Socket events (server → client):
-  new_request      — broadcast when request submitted
-  request_update   — broadcast on any status change
-  status_update    — relay from any client to all others
-  telemetry:update — broadcast drone telemetry
-
-Socket events (client → server):
-  drone_telemetry  — drone hardware pushes telemetry
-  status_update    — client relays status change
+Migrated from MySQL to MongoDB Atlas with:
+  - MongoDB connection pooling
+  - Collections instead of tables
+  - Pymongo for database operations
+  - Full compatibility with frontend API
 """
 
 import os
 import json
 import logging
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
+from typing import Optional, Any
 from uuid import uuid4
 
 import jwt
 import bcrypt
-import mysql.connector
-from mysql.connector import errorcode, pooling
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.errors import PyMongoError, DuplicateKeyError
+from pymongo.database import Database
 from flask import Flask, request as req, jsonify
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -53,25 +34,29 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
 
+URGENCY_ORDER = {'Critical': 0, 'High': 1, 'Urgent': 2, 'Normal': 3}
+
 
 class Config:
-    DB_HOST     = os.getenv('DB_HOST', 'localhost')
-    DB_PORT     = int(os.getenv('DB_PORT', 3306))
-    DB_USER     = os.getenv('DB_USER', 'root')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-    DB_NAME     = os.getenv('DB_NAME', 'drone')
+    MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/drone')
+    MONGODB_DB_NAME = os.getenv('MONGODB_DB_NAME', 'drone')
 
-    FLASK_PORT  = int(os.getenv('FLASK_PORT', 5000))
-    DEBUG       = os.getenv('DEBUG', 'True').lower() == 'true'
+    FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
+    DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-    JWT_SECRET  = os.getenv('JWT_SECRET_KEY', 'ndrf_secret_change_me')
-    JWT_ALG     = 'HS256'
-    JWT_EXP_H   = int(os.getenv('JWT_EXPIRATION_HOURS', 24))
+    JWT_SECRET = os.getenv('JWT_SECRET_KEY', 'ndrf_secret_change_me')
+    JWT_ALG = 'HS256'
+    JWT_EXP_H = int(os.getenv('JWT_EXPIRATION_HOURS', 24))
 
-    CORS_ORIGINS = os.getenv(
-        'CORS_ORIGIN',
-        'http://localhost:5173,http://localhost:5174,http://localhost:19006'
-    ).split(',')
+    # Support comma-separated origins in .env
+    CORS_ORIGINS = [
+        o.strip()
+        for o in os.getenv(
+            'CORS_ORIGIN',
+            'http://localhost:5173,http://localhost:5174,http://localhost:19006'
+        ).split(',')
+        if o.strip()
+    ]
 
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -108,217 +93,151 @@ socketio = SocketIO(
     engineio_logger=False,
 )
 
-# ── Database ──────────────────────────────────────────────────────────────────
+# ── MongoDB Client ────────────────────────────────────────────────────────────
 
-_pool = None
-
-
-def _ensure_db():
-    """Create the database if it doesn't exist yet."""
-    conn = mysql.connector.connect(
-        host=Config.DB_HOST, port=Config.DB_PORT,
-        user=Config.DB_USER, password=Config.DB_PASSWORD,
-        autocommit=True,
-    )
-    cur = conn.cursor()
-    cur.execute(
-        f"CREATE DATABASE IF NOT EXISTS `{Config.DB_NAME}` "
-        "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-    )
-    cur.close()
-    conn.close()
+_client: Optional[MongoClient] = None
+_db: Optional[Database[Any]] = None
 
 
-def init_pool():
-    global _pool
-    if _pool:
-        return
+def get_db() -> Database[Any]:
+    """Get MongoDB database connection."""
+    global _client, _db
+    if _client is None:
+        try:
+            _client = MongoClient(Config.MONGODB_URI, serverSelectionTimeoutMS=5000)
+            # Test connection
+            _client.admin.command('ping')
+            _db = _client[Config.MONGODB_DB_NAME]
+            logger.info('MongoDB connected successfully')
+        except PyMongoError as e:
+            logger.error('MongoDB connection failed: %s', e)
+            raise SystemExit(1) from e
+    return _db  # type: ignore[return-value]
+
+
+def init_indexes():
+    """Create indexes for MongoDB collections."""
+    db = get_db()
+
+    # Users indexes
+    db.users.create_index([('email', ASCENDING)], unique=True)
+    db.users.create_index([('username', ASCENDING)], unique=True)
+
+    # Drones indexes
+    db.drones.create_index([('drone_id', ASCENDING)], unique=True)
+    db.drones.create_index([('status', ASCENDING)])
+
+    # Requests indexes
+    db.requests.create_index([('ref_id', ASCENDING)], unique=True)
+    db.requests.create_index([('status', ASCENDING)])
+    db.requests.create_index([('urgency', ASCENDING)])
+    db.requests.create_index([('created_at', DESCENDING)])
+
+    # Telemetry indexes
+    db.telemetry.create_index([('drone_id', ASCENDING), ('recorded_at', DESCENDING)])
+
+    # Drone commands indexes
+    db.drone_commands.create_index([('drone_id', ASCENDING), ('status', ASCENDING)])
+
+    logger.info('MongoDB indexes created')
+
+
+def seed_data():
+    """Seed initial data if collections are empty."""
+    db = get_db()
+
+    # Seed drones
+    if db.drones.count_documents({}) == 0:
+        drones = [
+            {
+                'drone_id': 'DRONE-001',
+                'name': 'Alpha',
+                'model': 'DJI Matrice 300',
+                'status': 'Idle',
+                'battery': 95,
+                'lat': 28.6139,
+                'lon': 77.2090,
+                'altitude': 0,
+                'speed': 0,
+                'heading': 0,
+                'signal': 0,
+                'last_seen': datetime.now(timezone.utc),
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc),
+            },
+            {
+                'drone_id': 'DRONE-002',
+                'name': 'Bravo',
+                'model': 'DJI Matrice 300',
+                'status': 'Idle',
+                'battery': 88,
+                'lat': 28.6140,
+                'lon': 77.2091,
+                'altitude': 0,
+                'speed': 0,
+                'heading': 0,
+                'signal': 0,
+                'last_seen': datetime.now(timezone.utc),
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc),
+            },
+            {
+                'drone_id': 'DRONE-003',
+                'name': 'Charlie',
+                'model': 'DJI Phantom 4',
+                'status': 'Idle',
+                'battery': 100,
+                'lat': 28.6141,
+                'lon': 77.2092,
+                'altitude': 0,
+                'speed': 0,
+                'heading': 0,
+                'signal': 0,
+                'last_seen': datetime.now(timezone.utc),
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc),
+            },
+        ]
+        db.drones.insert_many(drones)
+        logger.info('Drones seeded (3 drones added)')
+
+    # Seed admin user
+    if db.users.count_documents({}) == 0:
+        pw_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
+        admin_user = {
+            'username': 'admin',
+            'email': 'admin@ndrf.gov',
+            'password_hash': pw_hash,
+            'role': 'admin',
+            'name': 'Admin User',
+            'is_active': True,
+            'last_login': None,
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc),
+        }
+        db.users.insert_one(admin_user)
+        logger.info('Admin user seeded (password: admin123)')
+
+
+def init_mongodb():
+    """Initialize MongoDB connection and create indexes."""
+    get_db()
+
     print()
     print('  ┌─────────────────────────────────────────┐')
-    print('  │         NDRF Backend — MySQL Status      │')
+    print('  │      NDRF Backend — MongoDB Status       │')
     print('  └─────────────────────────────────────────┘')
-    try:
-        _pool = pooling.MySQLConnectionPool(
-            pool_name='ndrf', pool_size=5,
-            host=Config.DB_HOST, port=Config.DB_PORT,
-            user=Config.DB_USER, password=Config.DB_PASSWORD,
-            database=Config.DB_NAME, autocommit=True,
-        )
-        print(f'  ✅  Database connected   : {Config.DB_NAME}')
-        print(f'  🌐  Host                 : {Config.DB_HOST}:{Config.DB_PORT}')
-        print(f'  👤  User                 : {Config.DB_USER}')
-        logger.info('MySQL pool ready — %s@%s:%s', Config.DB_NAME, Config.DB_HOST, Config.DB_PORT)
-    except mysql.connector.Error as e:
-        if e.errno == errorcode.ER_BAD_DB_ERROR:
-            print(f'  ⚠️   Database "{Config.DB_NAME}" not found — creating it...')
-            logger.warning("DB '%s' missing — creating it.", Config.DB_NAME)
-            _ensure_db()
-            _pool = pooling.MySQLConnectionPool(
-                pool_name='ndrf', pool_size=5,
-                host=Config.DB_HOST, port=Config.DB_PORT,
-                user=Config.DB_USER, password=Config.DB_PASSWORD,
-                database=Config.DB_NAME, autocommit=True,
-            )
-            print(f'  ✅  Database created & connected : {Config.DB_NAME}')
-            logger.info('MySQL pool ready after DB creation.')
-        else:
-            print(f'  ❌  Database connection FAILED')
-            print(f'  ⚠️   Error : {e}')
-            print(f'  💡  Make sure XAMPP MySQL is running on {Config.DB_HOST}:{Config.DB_PORT}')
-            print()
-            logger.error('MySQL connection failed: %s', e)
-            raise SystemExit(1) from e
 
+    db = get_db()
+    print(f'  ✅  Database          : {Config.MONGODB_DB_NAME}')
+    print(f'  🌐  Connection        : MongoDB Atlas')
 
-def get_db():
-    init_pool()
-    return _pool.get_connection()
+    # Create indexes
+    init_indexes()
+    print(f'  ✅  Indexes created')
 
-
-def auto_migrate():
-    """Create all tables automatically if they don't exist."""
-    conn = get_db()
-    cur  = conn.cursor()
-    try:
-        cur.execute('SHOW TABLES')
-        existing = {row[0].lower() for row in cur.fetchall()}
-
-        statements = [
-            ("users", '''
-                CREATE TABLE IF NOT EXISTS users (
-                  id            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-                  username      VARCHAR(50)   NOT NULL UNIQUE,
-                  email         VARCHAR(120)  NOT NULL UNIQUE,
-                  password_hash VARCHAR(255)  NOT NULL,
-                  role          VARCHAR(32)   NOT NULL DEFAULT \'responder\',
-                  name          VARCHAR(100),
-                  is_active     BOOLEAN       NOT NULL DEFAULT TRUE,
-                  last_login    DATETIME,
-                  created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  updated_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  PRIMARY KEY (id),
-                  KEY idx_username (username),
-                  KEY idx_email    (email)
-                ) ENGINE=InnoDB
-            '''),
-            ("drones", '''
-                CREATE TABLE IF NOT EXISTS drones (
-                  id          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-                  drone_id    VARCHAR(50)   NOT NULL UNIQUE,
-                  name        VARCHAR(100)  NOT NULL,
-                  model       VARCHAR(100),
-                  status      VARCHAR(32)   NOT NULL DEFAULT \'Idle\',
-                  battery     TINYINT UNSIGNED DEFAULT 100,
-                  lat         DOUBLE        DEFAULT 0,
-                  lon         DOUBLE        DEFAULT 0,
-                  altitude    FLOAT         DEFAULT 0,
-                  speed       FLOAT         DEFAULT 0,
-                  heading     FLOAT         DEFAULT 0,
-                  `signal`    TINYINT UNSIGNED DEFAULT 0,
-                  last_seen   DATETIME,
-                  created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  updated_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  PRIMARY KEY (id),
-                  KEY idx_drone_id (drone_id),
-                  KEY idx_status   (status)
-                ) ENGINE=InnoDB
-            '''),
-            ("requests", '''
-                CREATE TABLE IF NOT EXISTS requests (
-                  id                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-                  ref_id            VARCHAR(50)   UNIQUE,
-                  resource          VARCHAR(64)   NOT NULL,
-                  note              TEXT,
-                  lat               DOUBLE        NOT NULL,
-                  lon               DOUBLE        NOT NULL,
-                  urgency           VARCHAR(32)   NOT NULL DEFAULT \'Urgent\',
-                  status            VARCHAR(32)   NOT NULL DEFAULT \'Pending\',
-                  disaster_type     VARCHAR(128),
-                  people_affected   INT UNSIGNED  DEFAULT 1,
-                  state             VARCHAR(64),
-                  cart              JSON,
-                  assigned_drone_id INT UNSIGNED,
-                  created_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  updated_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                  PRIMARY KEY (id),
-                  KEY idx_status   (status),
-                  KEY idx_urgency  (urgency),
-                  KEY idx_created  (created_at),
-                  KEY idx_location (lat, lon),
-                  FOREIGN KEY (assigned_drone_id) REFERENCES drones(id) ON DELETE SET NULL
-                ) ENGINE=InnoDB
-            '''),
-            ("telemetry", '''
-                CREATE TABLE IF NOT EXISTS telemetry (
-                  id          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-                  drone_id    INT UNSIGNED  NOT NULL,
-                  battery     TINYINT UNSIGNED DEFAULT 100,
-                  lat         DOUBLE        DEFAULT 0,
-                  lon         DOUBLE        DEFAULT 0,
-                  altitude    FLOAT         DEFAULT 0,
-                  speed       FLOAT         DEFAULT 0,
-                  heading     FLOAT         DEFAULT 0,
-                  `signal`    TINYINT UNSIGNED DEFAULT 0,
-                  recorded_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  PRIMARY KEY (id),
-                  KEY idx_drone_time (drone_id, recorded_at),
-                  FOREIGN KEY (drone_id) REFERENCES drones(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB
-            '''),
-            ("drone_commands", '''
-                CREATE TABLE IF NOT EXISTS drone_commands (
-                  id          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-                  drone_id    INT UNSIGNED  NOT NULL,
-                  command     VARCHAR(100)  NOT NULL,
-                  parameters  JSON,
-                  status      VARCHAR(32)   NOT NULL DEFAULT \'Pending\',
-                  issued_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  executed_at DATETIME,
-                  PRIMARY KEY (id),
-                  KEY idx_drone_status (drone_id, status),
-                  FOREIGN KEY (drone_id) REFERENCES drones(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB
-            '''),
-        ]
-
-        print()
-        print('  ┌─────────────────────────────────────────┐')
-        print('  │              Database Tables             │')
-        print('  └─────────────────────────────────────────┘')
-
-        for table, ddl in statements:
-            if table not in existing:
-                cur.execute(ddl)
-                print(f'  ✅  {table}  ← created')
-                logger.info("Table '%s' created.", table)
-            else:
-                print(f'  ✅  {table}')
-
-        # Seed drones if empty
-        cur.execute('SELECT COUNT(*) FROM drones')
-        if cur.fetchone()[0] == 0:
-            cur.execute('''
-                INSERT INTO drones (drone_id, name, model, status, battery, lat, lon) VALUES
-                (\'DRONE-001\', \'Alpha\',   \'DJI Matrice 300\', \'Idle\', 95,  28.6139, 77.2090),
-                (\'DRONE-002\', \'Bravo\',   \'DJI Matrice 300\', \'Idle\', 88,  28.6140, 77.2091),
-                (\'DRONE-003\', \'Charlie\', \'DJI Phantom 4\',   \'Idle\', 100, 28.6141, 77.2092)
-            ''')
-            print('  ✅  drones seeded (3 drones added)')
-
-        # Seed admin user if empty
-        cur.execute('SELECT COUNT(*) FROM users')
-        if cur.fetchone()[0] == 0:
-            pw_hash = bcrypt.hashpw(b'admin123', bcrypt.gensalt()).decode()
-            cur.execute(
-                'INSERT INTO users (username, email, password_hash, role, name) VALUES (%s,%s,%s,%s,%s)',
-                ('admin', 'admin@ndrf.gov', pw_hash, 'admin', 'Admin User'),
-            )
-            print('  ✅  admin user seeded  (password: admin123)')
-
-        print()
-    finally:
-        cur.close()
-        conn.close()
+    # Seed data
+    seed_data()
 
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -326,10 +245,10 @@ def auto_migrate():
 def make_token(user_id, username, role):
     return jwt.encode(
         {
-            'user_id': user_id,
+            'user_id': str(user_id),
             'username': username,
             'role': role,
-            'exp': datetime.utcnow() + timedelta(hours=Config.JWT_EXP_H),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=Config.JWT_EXP_H),
         },
         Config.JWT_SECRET,
         algorithm=Config.JWT_ALG,
@@ -353,36 +272,83 @@ def token_required(f):
         payload = decode_token(token)
         if not payload:
             return jsonify({'message': 'Invalid or expired token'}), 401
-        req.user = payload
+        req.user = payload  # type: ignore[attr-defined]
         return f(*args, **kwargs)
     return wrapper
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def row_to_dict(cursor, row):
-    """Convert a DB row to a dict using cursor description."""
-    return {cursor.description[i][0]: v for i, v in enumerate(row)}
+def serialize_doc(doc) -> dict:
+    """Convert a single MongoDB document to a JSON-serializable dict."""
+    if doc is None:
+        return {}
+    if isinstance(doc, list):
+        return {}  # use serialize_docs for lists
+
+    doc_copy = dict(doc)
+    if '_id' in doc_copy:
+        doc_copy['_id'] = str(doc_copy['_id'])
+
+    for key, value in doc_copy.items():
+        if isinstance(value, datetime):
+            doc_copy[key] = value.isoformat()
+        elif isinstance(value, bytes):
+            doc_copy[key] = value.decode()
+
+    return doc_copy
 
 
-def serialize(obj):
-    """Make datetime / bytes JSON-safe."""
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    if isinstance(obj, bytes):
-        return obj.decode()
-    return obj
+def serialize_docs(docs) -> list:
+    """Convert a list of MongoDB documents to JSON-serializable dicts."""
+    return [serialize_doc(d) for d in docs]
 
 
-def clean_row(row: dict) -> dict:
-    return {k: serialize(v) for k, v in row.items()}
+def triage_sort_key(r):
+    """Sort by urgency priority first, then by age (oldest first = highest priority)."""
+    urgency_rank = URGENCY_ORDER.get(r.get('urgency', 'Urgent'), 99)
+    created = r.get('created_at') or ''
+    return (urgency_rank, created)
 
 
 # ── REST: Health ──────────────────────────────────────────────────────────────
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()}), 200
+    return jsonify({'status': 'ok', 'timestamp': datetime.now(timezone.utc).isoformat()}), 200
+
+
+# ── REST: Stats ────────────────────────────────────────────────────────────────
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    """Return request counts by status for the dashboard."""
+    try:
+        db = get_db()
+        requests_col = db.requests
+
+        total = requests_col.count_documents({})
+        pending = requests_col.count_documents({'status': 'Pending'})
+        assigned = requests_col.count_documents({'status': 'Assigned'})
+        in_transit = requests_col.count_documents({'status': 'In Transit'})
+        delivered = requests_col.count_documents({'status': 'Delivered'})
+        confirmed = requests_col.count_documents({'status': 'UserConfirmed'})
+        critical = requests_col.count_documents({'urgency': 'Critical'})
+        high = requests_col.count_documents({'urgency': 'High'})
+
+        return jsonify({
+            'total': total,
+            'pending': pending,
+            'assigned': assigned,
+            'in_transit': in_transit,
+            'delivered': delivered,
+            'confirmed': confirmed,
+            'critical': critical,
+            'high': high,
+        }), 200
+    except Exception as e:
+        logger.error('get_stats error: %s', e)
+        return jsonify({}), 200
 
 
 # ── REST: Auth ────────────────────────────────────────────────────────────────
@@ -391,60 +357,75 @@ def health():
 def auth_register():
     data = req.get_json() or {}
     username = data.get('username') or data.get('email', '').split('@')[0]
-    email    = data.get('email', '')
+    email = data.get('email', '').strip()
     password = data.get('password', '')
-    name     = data.get('full_name') or data.get('name', '')
+    name = data.get('full_name') or data.get('name', '')
 
     if not email or not password:
         return jsonify({'message': 'email and password required'}), 400
 
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute('SELECT id FROM users WHERE email = %s OR username = %s', (email, username))
-        if cur.fetchone():
+        db = get_db()
+        users_col = db.users
+
+        if users_col.find_one({'$or': [{'email': email}, {'username': username}]}):
             return jsonify({'message': 'User already exists'}), 409
 
         pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-        cur.execute(
-            'INSERT INTO users (username, email, password_hash, name, role) VALUES (%s,%s,%s,%s,%s)',
-            (username, email, pw_hash, name, 'responder'),
-        )
-        uid = cur.lastrowid
+        now_utc = datetime.now(timezone.utc)
+
+        user_doc = {
+            'username': username,
+            'email': email,
+            'password_hash': pw_hash,
+            'name': name,
+            'role': 'responder',
+            'is_active': True,
+            'last_login': None,
+            'created_at': now_utc,
+            'updated_at': now_utc,
+        }
+
+        result = users_col.insert_one(user_doc)
+        uid = str(result.inserted_id)
         token = make_token(uid, username, 'responder')
+
         return jsonify({'token': token, 'user_id': uid}), 201
     except Exception as e:
         logger.error('register error: %s', e)
         return jsonify({'message': 'Registration failed'}), 500
-    finally:
-        cur.close(); conn.close()
 
 
 @app.route('/auth/login', methods=['POST'])
 def auth_login():
-    data     = req.get_json() or {}
-    email    = data.get('email') or data.get('username', '')
+    data = req.get_json() or {}
+    email = data.get('email') or data.get('username', '')
     password = data.get('password', '')
 
     if not email or not password:
         return jsonify({'message': 'email and password required'}), 400
 
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute('SELECT * FROM users WHERE email = %s OR username = %s', (email, email))
-        user = cur.fetchone()
+        db = get_db()
+        users_col = db.users
+
+        user = users_col.find_one({'$or': [{'email': email}, {'username': email}]})
+
         if not user or not bcrypt.checkpw(password.encode(), user['password_hash'].encode()):
             return jsonify({'message': 'Invalid credentials'}), 401
+
         if not user.get('is_active', True):
             return jsonify({'message': 'Account inactive'}), 401
 
-        cur.execute('UPDATE users SET last_login = NOW() WHERE id = %s', (user['id'],))
-        token = make_token(user['id'], user['username'], user['role'])
+        uid = str(user['_id'])
+        users_col.update_one({'_id': user['_id']}, {'$set': {'last_login': datetime.now(timezone.utc)}})
+
+        token = make_token(uid, user['username'], user['role'])
+
         return jsonify({
             'token': token,
             'user': {
-                'id': user['id'],
+                'id': uid,
                 'username': user['username'],
                 'email': user['email'],
                 'role': user['role'],
@@ -454,32 +435,31 @@ def auth_login():
     except Exception as e:
         logger.error('login error: %s', e)
         return jsonify({'message': 'Login failed'}), 500
-    finally:
-        cur.close(); conn.close()
 
 
 @app.route('/auth/logout', methods=['POST'])
 def auth_logout():
-    # JWT is stateless; client drops the token
     return jsonify({'message': 'Logged out'}), 200
 
 
 @app.route('/auth/me', methods=['GET'])
 @token_required
 def auth_me():
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute(
-            'SELECT id, username, email, role, name FROM users WHERE id = %s',
-            (req.user['user_id'],),
-        )
-        user = cur.fetchone()
+        db = get_db()
+        users_col = db.users
+        from bson import ObjectId
+
+        user_id = req.user['user_id']  # type: ignore[index]
+        user = users_col.find_one({'_id': ObjectId(user_id)})
+
         if not user:
             return jsonify({'message': 'User not found'}), 404
-        return jsonify({'user': user}), 200
-    finally:
-        cur.close(); conn.close()
+
+        return jsonify({'user': serialize_doc(user)}), 200
+    except Exception as e:
+        logger.error('auth_me error: %s', e)
+        return jsonify({'message': 'Error'}), 500
 
 
 # ── REST: Requests ────────────────────────────────────────────────────────────
@@ -489,34 +469,37 @@ def submit_request():
     """Mobile user submits a relief request — no auth required."""
     data = req.get_json() or {}
 
-    resource = data.get('resource')
-    lat      = data.get('lat')
-    lon      = data.get('lon')
+    resource = str(data.get('resource') or '').strip()
+    lat = data.get('lat')
+    lon = data.get('lon')
 
     if not resource or lat is None or lon is None:
         return jsonify({'message': 'resource, lat, lon required'}), 400
 
-    ref_id = 'REQ-' + uuid4().hex[:8].upper()
-    note   = data.get('note') or data.get('description', '')
-    cart   = data.get('cart') or data.get('items', {})
-    urgency = data.get('urgency', 'Urgent')
-    status  = 'Pending'
-
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        # Backward-compatible insert: older DBs may not include newer columns.
-        cur.execute('SHOW COLUMNS FROM requests')
-        request_columns = {row['Field'] for row in cur.fetchall()}
+        lat = float(lat)
+        lon = float(lon)
+    except (TypeError, ValueError):
+        return jsonify({'message': 'lat and lon must be numbers'}), 400
 
-        required = {'resource', 'lat', 'lon'}
-        missing_required = required - request_columns
-        if missing_required:
-            logger.error('requests table missing required columns: %s', sorted(missing_required))
-            return jsonify({'message': 'Invalid requests table schema'}), 500
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        return jsonify({'message': 'Invalid coordinates'}), 400
 
-        now_utc = datetime.utcnow()
-        payload_by_column = {
+    urgency = data.get('urgency', 'Urgent')
+    if urgency not in ('Critical', 'High', 'Urgent', 'Normal'):
+        urgency = 'Urgent'
+    status = 'Pending'
+
+    ref_id = 'REQ-' + uuid4().hex[:8].upper()
+    note = str(data.get('note') or data.get('description') or '').strip()[:1000]
+    cart = data.get('cart') or data.get('items') or {}
+
+    try:
+        db = get_db()
+        requests_col = db.requests
+        now_utc = datetime.now(timezone.utc)
+
+        request_doc = {
             'ref_id': ref_id,
             'resource': resource,
             'note': note,
@@ -524,33 +507,17 @@ def submit_request():
             'lon': lon,
             'urgency': urgency,
             'status': status,
-            'disaster_type': data.get('disaster') or data.get('disaster_type', ''),
-            'people_affected': data.get('people') or data.get('people_affected', 1),
-            'state': data.get('state', ''),
-            'cart': json.dumps(cart),
+            'disaster_type': str(data.get('disaster') or data.get('disaster_type') or '').strip(),
+            'people_affected': int(data.get('people') or data.get('people_affected') or 1),
+            'state': str(data.get('state') or '').strip(),
+            'cart': cart,
+            'assigned_drone_id': None,
             'created_at': now_utc,
             'updated_at': now_utc,
         }
 
-        # Support legacy column names when present.
-        if 'disaster_type' not in request_columns and 'disaster' in request_columns:
-            payload_by_column['disaster'] = payload_by_column['disaster_type']
-        if 'people_affected' not in request_columns and 'people' in request_columns:
-            payload_by_column['people'] = payload_by_column['people_affected']
-
-        insert_payload = {
-            col: val
-            for col, val in payload_by_column.items()
-            if col in request_columns
-        }
-
-        columns_sql = ', '.join(f'`{col}`' for col in insert_payload.keys())
-        placeholders_sql = ', '.join(['%s'] * len(insert_payload))
-        cur.execute(
-            f'INSERT INTO requests ({columns_sql}) VALUES ({placeholders_sql})',
-            tuple(insert_payload.values()),
-        )
-        request_id = cur.lastrowid
+        result = requests_col.insert_one(request_doc)
+        request_id = str(result.inserted_id)
 
         new_req = {
             'id': request_id,
@@ -562,181 +529,185 @@ def submit_request():
             'urgency': urgency,
             'status': status,
             'cart': cart,
-            'state': data.get('state', ''),
-            'people_affected': data.get('people') or data.get('people_affected', 1),
-            'disaster_type': data.get('disaster') or data.get('disaster_type', ''),
-            'created_at': datetime.utcnow().isoformat(),
-            'timestamp': datetime.utcnow().isoformat(),
+            'state': str(data.get('state') or ''),
+            'people_affected': int(data.get('people') or data.get('people_affected') or 1),
+            'disaster_type': str(data.get('disaster') or data.get('disaster_type') or ''),
+            'created_at': now_utc.isoformat(),
+            'timestamp': now_utc.isoformat(),
         }
 
-        # Broadcast to ground station
-        socketio.emit('new_request', new_req)
-        logger.info('New request %s (%s)', ref_id, resource)
+        socketio.emit('new_request', new_req, to='gcs')  # type: ignore[call-arg]
+        logger.info('New request %s (%s) urgency=%s', ref_id, resource, urgency)
 
         return jsonify({'message': 'Request submitted', 'id': request_id, 'request_id': request_id, 'ref_id': ref_id}), 201
     except Exception as e:
         logger.error('submit_request error: %s', e)
         return jsonify({'message': 'Failed to submit request'}), 500
-    finally:
-        cur.close(); conn.close()
 
 
 @app.route('/requests', methods=['GET'])
 def get_requests():
-    """Return all requests as a plain array (ground station expects this)."""
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
+    """Return all requests sorted by triage priority."""
     try:
-        cur.execute('SELECT * FROM requests ORDER BY created_at DESC')
-        rows = cur.fetchall()
-        result = []
-        for r in rows:
-            r = clean_row(r)
-            if r.get('cart') and isinstance(r['cart'], str):
-                try:
-                    r['cart'] = json.loads(r['cart'])
-                except Exception:
-                    pass
-            result.append(r)
-        return jsonify(result), 200
+        db = get_db()
+        requests_col = db.requests
+
+        requests = list(requests_col.find().sort('created_at', DESCENDING))
+        result = serialize_docs(requests)
+
+        active = [r for r in result if r.get('status') not in ('Delivered', 'UserConfirmed')]
+        inactive = [r for r in result if r.get('status') in ('Delivered', 'UserConfirmed')]
+        active.sort(key=triage_sort_key)
+
+        return jsonify(active + inactive), 200
     except Exception as e:
         logger.error('get_requests error: %s', e)
         return jsonify([]), 200
-    finally:
-        cur.close(); conn.close()
+
+
+@app.route('/requests/<request_id>', methods=['GET'])
+def get_request(request_id):
+    """Get a single request by ID."""
+    try:
+        from bson import ObjectId
+        db = get_db()
+        requests_col = db.requests
+
+        request_doc = requests_col.find_one({'_id': ObjectId(request_id)})
+
+        if not request_doc:
+            return jsonify({'message': 'Not found'}), 404
+
+        return jsonify(serialize_doc(request_doc)), 200
+    except Exception as e:
+        logger.error('get_request error: %s', e)
+        return jsonify({'message': 'Error'}), 500
 
 
 @app.route('/requests/search', methods=['GET'])
 def search_requests():
-    status   = req.args.get('status')
+    status = req.args.get('status')
     resource = req.args.get('resource')
-    urgency  = req.args.get('urgency')
-    limit    = int(req.args.get('limit', 100))
+    urgency = req.args.get('urgency')
+    limit = min(int(req.args.get('limit', 100)), 500)
 
-    query  = 'SELECT * FROM requests WHERE 1=1'
-    params = []
-    if status:
-        query += ' AND status = %s'; params.append(status)
-    if resource:
-        query += ' AND resource = %s'; params.append(resource)
-    if urgency:
-        query += ' AND urgency = %s'; params.append(urgency)
-    query += ' ORDER BY created_at DESC LIMIT %s'
-    params.append(limit)
-
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute(query, params)
-        rows = [clean_row(r) for r in cur.fetchall()]
-        return jsonify(rows), 200
+        db = get_db()
+        requests_col = db.requests
+
+        query = {}
+        if status:
+            query['status'] = status
+        if resource:
+            query['resource'] = resource
+        if urgency:
+            query['urgency'] = urgency
+
+        requests = list(requests_col.find(query).sort('created_at', DESCENDING).limit(limit))
+        result = serialize_docs(requests)
+
+        return jsonify(result), 200
     except Exception as e:
         logger.error('search_requests error: %s', e)
         return jsonify([]), 200
-    finally:
-        cur.close(); conn.close()
 
 
 def _update_request_status(request_id, new_status, drone_id=None):
     """Update status in DB and broadcast request_update socket event."""
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute('SHOW COLUMNS FROM requests')
-        request_columns = {row['Field'] for row in cur.fetchall()}
+        from bson import ObjectId
+        db = get_db()
+        requests_col = db.requests
 
-        update_clauses = ['status=%s']
-        params = [new_status]
+        update_data = {
+            'status': new_status,
+            'updated_at': datetime.now(timezone.utc),
+        }
 
         if drone_id is not None:
-            if 'assigned_drone_id' in request_columns:
-                update_clauses.append('assigned_drone_id=%s')
-                params.append(drone_id)
-            elif 'drone_id' in request_columns:
-                # Legacy schema compatibility.
-                update_clauses.append('drone_id=%s')
-                params.append(drone_id)
+            update_data['assigned_drone_id'] = drone_id
 
-        if 'updated_at' in request_columns:
-            update_clauses.append('updated_at=NOW()')
-
-        params.append(request_id)
-        cur.execute(
-            f"UPDATE requests SET {', '.join(update_clauses)} WHERE id=%s",
-            tuple(params),
+        requests_col.update_one(
+            {'_id': ObjectId(request_id)},
+            {'$set': update_data}
         )
 
-        cur.execute('SELECT * FROM requests WHERE id = %s', (request_id,))
-        row = cur.fetchone()
-        if not row:
+        request_doc = requests_col.find_one({'_id': ObjectId(request_id)})
+        if not request_doc:
             return None
 
-        row = clean_row(row)
-        if row.get('cart') and isinstance(row['cart'], str):
-            try:
-                row['cart'] = json.loads(row['cart'])
-            except Exception:
-                pass
+        row = serialize_doc(request_doc)
 
-        # Broadcast to all clients (ground station + mobile)
         socketio.emit('request_update', row)
         socketio.emit('status_update', {'id': request_id, 'status': new_status})
         logger.info('Request %s → %s', request_id, new_status)
+
         return row
-    finally:
-        cur.close(); conn.close()
+    except Exception as e:
+        logger.error('_update_request_status error: %s', e)
+        return None
 
 
-@app.route('/assign/<int:request_id>', methods=['POST'])
+@app.route('/assign/<request_id>', methods=['POST'])
 def assign_request(request_id):
-    data     = req.get_json() or {}
+    data = req.get_json() or {}
     drone_input = data.get('drone_id')
 
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-      if drone_input is None or drone_input == '':
-          # Fallback to first idle drone when explicit drone_id is not provided.
-          cur.execute("SELECT id FROM drones WHERE status = 'Idle' LIMIT 1")
-          drone = cur.fetchone()
-          drone_id = drone['id'] if drone else 1
-      elif isinstance(drone_input, str) and not drone_input.isdigit():
-          # Support human-readable IDs like DRONE-001 from older clients.
-          cur.execute('SELECT id FROM drones WHERE drone_id = %s LIMIT 1', (drone_input,))
-          drone = cur.fetchone()
-          if not drone:
-              return jsonify({'message': f'Unknown drone_id: {drone_input}'}), 400
-          drone_id = drone['id']
-      else:
-          drone_id = int(drone_input)
-    finally:
-      cur.close(); conn.close()
+        from bson import ObjectId
+        db = get_db()
+        drones_col = db.drones
+
+        if drone_input is None or drone_input == '':
+            drone = drones_col.find_one({'status': 'Idle'}, sort=[('battery', DESCENDING)])
+            drone_id = str(drone['_id']) if drone else None
+        elif isinstance(drone_input, str) and not drone_input.isdigit():
+            drone = drones_col.find_one({'drone_id': drone_input})
+            if not drone:
+                return jsonify({'message': f'Unknown drone_id: {drone_input}'}), 400
+            drone_id = str(drone['_id'])
+        else:
+            drone_id = drone_input
+
+        drones_col.update_one(
+            {'_id': ObjectId(drone_id)},
+            {'$set': {'status': 'Flying', 'updated_at': datetime.now(timezone.utc)}}
+        )
+    except Exception as e:
+        logger.error('assign_request error: %s', e)
+        return jsonify({'message': 'Failed to assign drone'}), 500
 
     row = _update_request_status(request_id, 'Assigned', drone_id)
     if not row:
         return jsonify({'message': 'Request not found'}), 404
+
     return jsonify({'message': 'Assigned', 'request': row}), 200
 
 
-@app.route('/assign/<int:request_id>/auto', methods=['POST'])
+@app.route('/assign/<request_id>/auto', methods=['POST'])
 def auto_assign_request(request_id):
-    """Auto-assign the first idle drone."""
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT id FROM drones WHERE status = 'Idle' LIMIT 1")
-        drone = cur.fetchone()
-        drone_id = drone['id'] if drone else 'DRONE-001'
-    finally:
-        cur.close(); conn.close()
+        from bson import ObjectId
+        db = get_db()
+        drones_col = db.drones
+
+        drone = drones_col.find_one({'status': 'Idle'}, sort=[('battery', DESCENDING)])
+        drone_id = str(drone['_id']) if drone else None
+
+        if not drone_id:
+            return jsonify({'message': 'No available drones'}), 400
+    except Exception as e:
+        logger.error('auto_assign_request error: %s', e)
+        return jsonify({'message': 'Failed to auto-assign'}), 500
 
     row = _update_request_status(request_id, 'Assigned', drone_id)
     if not row:
         return jsonify({'message': 'Request not found'}), 404
+
     return jsonify({'message': 'Auto-assigned', 'request': row}), 200
 
 
-@app.route('/in-transit/<int:request_id>', methods=['POST'])
+@app.route('/in-transit/<request_id>', methods=['POST'])
 def set_in_transit(request_id):
     row = _update_request_status(request_id, 'In Transit')
     if not row:
@@ -744,159 +715,223 @@ def set_in_transit(request_id):
     return jsonify({'message': 'In Transit', 'request': row}), 200
 
 
-@app.route('/deliver/<int:request_id>', methods=['POST'])
+@app.route('/deliver/<request_id>', methods=['POST'])
 def deliver_request(request_id):
     row = _update_request_status(request_id, 'Delivered')
     if not row:
         return jsonify({'message': 'Request not found'}), 404
+
+    if row.get('assigned_drone_id'):
+        try:
+            from bson import ObjectId
+            db = get_db()
+            drones_col = db.drones
+
+            drones_col.update_one(
+                {'_id': ObjectId(row['assigned_drone_id'])},
+                {'$set': {'status': 'Idle', 'updated_at': datetime.now(timezone.utc)}}
+            )
+        except Exception as e:
+            logger.error('deliver_request error: %s', e)
+
     return jsonify({'message': 'Delivered', 'request': row}), 200
 
 
-@app.route('/user-confirm/<int:request_id>', methods=['POST'])
+@app.route('/user-confirm/<request_id>', methods=['POST'])
 def user_confirm(request_id):
-    """Mobile user confirms they received the aid."""
     row = _update_request_status(request_id, 'UserConfirmed')
     if not row:
         return jsonify({'message': 'Request not found'}), 404
     return jsonify({'message': 'UserConfirmed', 'request': row}), 200
 
 
+# ── REST: Drone Commands ──────────────────────────────────────────────────────
+
+@app.route('/drones/<drone_pk>/command', methods=['POST'])
+def send_drone_command(drone_pk):
+    """Ground station sends a command to a specific drone."""
+    data = req.get_json() or {}
+    command = str(data.get('command') or '').strip().upper()
+    if not command:
+        return jsonify({'message': 'command required'}), 400
+
+    params = data.get('parameters') or {}
+
+    try:
+        from bson import ObjectId
+        db = get_db()
+        drones_col = db.drones
+        commands_col = db.drone_commands
+
+        drone = drones_col.find_one({'_id': ObjectId(drone_pk)})
+        if not drone:
+            return jsonify({'message': 'Drone not found'}), 404
+
+        command_doc = {
+            'drone_id': ObjectId(drone_pk),
+            'command': command,
+            'parameters': params,
+            'status': 'Pending',
+            'issued_at': datetime.now(timezone.utc),
+            'executed_at': None,
+        }
+
+        result = commands_col.insert_one(command_doc)
+        cmd_id = str(result.inserted_id)
+
+        socketio.emit('drone_command', {
+            'cmd_id': cmd_id,
+            'drone_id': drone['drone_id'],
+            'command': command,
+            'parameters': params,
+        })
+
+        logger.info('Command %s → drone %s', command, drone['drone_id'])
+        return jsonify({'message': 'Command sent', 'cmd_id': cmd_id}), 200
+    except Exception as e:
+        logger.error('send_drone_command error: %s', e)
+        return jsonify({'message': 'Failed to send command'}), 500
+
+
 # ── REST: Telemetry & Drones ──────────────────────────────────────────────────
 
 @app.route('/telemetry', methods=['GET'])
 def get_telemetry():
-    """Return the latest telemetry row per drone."""
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute(
-            '''SELECT t.* FROM telemetry t
-               INNER JOIN (
-                 SELECT drone_id, MAX(recorded_at) AS latest
-                 FROM telemetry GROUP BY drone_id
-               ) m ON t.drone_id = m.drone_id AND t.recorded_at = m.latest
-               ORDER BY t.drone_id'''
-        )
-        rows = [clean_row(r) for r in cur.fetchall()]
-        return jsonify(rows), 200
+        db = get_db()
+        telemetry_col = db.telemetry
+
+        telemetry = list(telemetry_col.find().sort('recorded_at', DESCENDING).limit(100))
+        result = serialize_docs(telemetry)
+
+        return jsonify(result), 200
     except Exception as e:
         logger.error('get_telemetry error: %s', e)
         return jsonify([]), 200
-    finally:
-        cur.close(); conn.close()
 
 
 @app.route('/drones', methods=['GET'])
 def get_drones():
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute('SELECT * FROM drones ORDER BY drone_id')
-        rows = [clean_row(r) for r in cur.fetchall()]
-        return jsonify(rows), 200
+        db = get_db()
+        drones_col = db.drones
+
+        drones = list(drones_col.find().sort('drone_id', ASCENDING))
+        result = serialize_docs(drones)
+
+        return jsonify(result), 200
     except Exception as e:
         logger.error('get_drones error: %s', e)
         return jsonify([]), 200
-    finally:
-        cur.close(); conn.close()
 
 
 @app.route('/drones/<drone_id>/telemetry', methods=['GET'])
 def get_drone_telemetry(drone_id):
-    limit = int(req.args.get('limit', 50))
-    conn  = get_db()
-    cur   = conn.cursor(dictionary=True)
+    limit = min(int(req.args.get('limit', 50)), 200)
+
     try:
-        # drone_id can be the string id (e.g. "DRONE-001") or numeric FK
-        cur.execute(
-            '''SELECT t.* FROM telemetry t
-               JOIN drones d ON t.drone_id = d.id
-               WHERE d.drone_id = %s OR d.id = %s
-               ORDER BY t.recorded_at DESC LIMIT %s''',
-            (drone_id, drone_id, limit),
-        )
-        rows = [clean_row(r) for r in cur.fetchall()]
-        return jsonify(rows), 200
+        from bson import ObjectId
+        db = get_db()
+        drones_col = db.drones
+        telemetry_col = db.telemetry
+
+        drone = drones_col.find_one({'$or': [{'drone_id': drone_id}, {'_id': ObjectId(drone_id) if ObjectId.is_valid(drone_id) else None}]})
+
+        if not drone:
+            return jsonify([]), 404
+
+        telemetry = list(telemetry_col.find({'drone_id': drone['_id']}).sort('recorded_at', DESCENDING).limit(limit))
+        result = serialize_docs(telemetry)
+
+        return jsonify(result), 200
     except Exception as e:
         logger.error('get_drone_telemetry error: %s', e)
         return jsonify([]), 200
-    finally:
-        cur.close(); conn.close()
 
 
 # ── Socket.IO events ──────────────────────────────────────────────────────────
 
 @socketio.on('connect')
 def on_connect():
-    logger.info('Client connected: %s', req.sid)
+    logger.info('Client connected: %s', req.sid)  # type: ignore[attr-defined]
     emit('connection_response', {'status': 'connected'})
 
 
 @socketio.on('disconnect')
 def on_disconnect():
-    logger.info('Client disconnected: %s', req.sid)
+    logger.info('Client disconnected: %s', req.sid)  # type: ignore[attr-defined]
+
+
+@socketio.on('join')
+def on_join(data):
+    """Clients declare their role: 'gcs' or 'mobile'."""
+    room = data.get('room', 'gcs')
+    if room in ('gcs', 'mobile'):
+        join_room(room)
+        logger.info('Client %s joined room: %s', req.sid, room)  # type: ignore[attr-defined]
+        emit('joined', {'room': room})
 
 
 @socketio.on('drone_telemetry')
 def on_drone_telemetry(data):
     """Drone hardware pushes telemetry here."""
     drone_str_id = data.get('drone_id', 'DRONE-001')
-    conn = get_db()
-    cur  = conn.cursor(dictionary=True)
+
     try:
-        cur.execute('SELECT id FROM drones WHERE drone_id = %s', (drone_str_id,))
-        drone = cur.fetchone()
+        db = get_db()
+        drones_col = db.drones
+        telemetry_col = db.telemetry
+
+        drone = drones_col.find_one({'drone_id': drone_str_id})
         if not drone:
             return
 
-        drone_pk = drone['id']
+        drone_pk = drone['_id']
+        now_utc = datetime.now(timezone.utc)
 
-        # Update live position on drones table
-        cur.execute(
-            '''UPDATE drones SET lat=%s, lon=%s, altitude=%s, speed=%s,
-               heading=%s, battery=%s, `signal`=%s, status=%s, last_seen=NOW()
-               WHERE id=%s''',
-            (
-                data.get('lat'), data.get('lon'), data.get('altitude', 0),
-                data.get('speed', 0), data.get('heading', 0),
-                data.get('battery', 0), data.get('signal', 0),
-                data.get('status', 'Flying'), drone_pk,
-            ),
+        drones_col.update_one(
+            {'_id': drone_pk},
+            {'$set': {
+                'lat': data.get('lat'),
+                'lon': data.get('lon'),
+                'altitude': data.get('altitude', 0),
+                'speed': data.get('speed', 0),
+                'heading': data.get('heading', 0),
+                'battery': data.get('battery', 0),
+                'signal': data.get('signal', 0),
+                'status': data.get('status', 'Flying'),
+                'last_seen': now_utc,
+                'updated_at': now_utc,
+            }}
         )
 
-        # Insert telemetry record
-        cur.execute(
-            '''INSERT INTO telemetry
-               (drone_id, lat, lon, altitude, speed, heading, battery, `signal`, recorded_at)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,NOW())''',
-            (
-                drone_pk, data.get('lat'), data.get('lon'),
-                data.get('altitude', 0), data.get('speed', 0),
-                data.get('heading', 0), data.get('battery', 0),
-                data.get('signal', 0),
-            ),
-        )
+        telemetry_doc = {
+            'drone_id': drone_pk,
+            'lat': data.get('lat'),
+            'lon': data.get('lon'),
+            'altitude': data.get('altitude', 0),
+            'speed': data.get('speed', 0),
+            'heading': data.get('heading', 0),
+            'battery': data.get('battery', 0),
+            'signal': data.get('signal', 0),
+            'recorded_at': now_utc,
+        }
 
-        # Broadcast to ground station
-        emit('telemetry:update', {**data, 'drone_pk': drone_pk}, broadcast=True, include_self=False)
+        telemetry_col.insert_one(telemetry_doc)
+
+        emit('telemetry:update', {**data, 'drone_pk': str(drone_pk)}, broadcast=True, include_self=False)
     except Exception as e:
         logger.error('drone_telemetry socket error: %s', e)
-    finally:
-        cur.close(); conn.close()
 
 
 @socketio.on('status_update')
 def on_status_update(data):
-    """
-    Relay from any client (mobile user or ground station) to all others.
-    Also persists the status change to DB.
-    """
+    """Relay status changes from mobile to GCS and persist to DB."""
     request_id = data.get('id')
-    new_status  = data.get('status')
+    new_status = data.get('status')
     if request_id and new_status:
         _update_request_status(request_id, new_status)
     else:
-        # Just relay without DB write
         emit('status_update', data, broadcast=True, include_self=False)
 
 
@@ -916,15 +951,27 @@ def server_error(e):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
-    init_pool()
-    auto_migrate()
+    init_mongodb()
+
     print('  ┌─────────────────────────────────────────┐')
     print('  │            Server Starting               │')
     print('  └─────────────────────────────────────────┘')
     print(f'  🚀  Backend  : http://localhost:{Config.FLASK_PORT}')
     print(f'  🖥️   Ground   : http://localhost:5174')
     print(f'  📱  User App : http://localhost:5173')
-    print(f'  🗄️   phpMyAdmin: http://localhost/phpmyadmin')
+    print(f'  🗄️   MongoDB  : Atlas')
     print()
+
     logger.info('Starting NDRF backend on port %s', Config.FLASK_PORT)
-    socketio.run(app, host='0.0.0.0', port=Config.FLASK_PORT, debug=Config.DEBUG)
+    # Werkzeug's reloader can close sockets during reload on Windows, causing WinError 10038.
+    use_reloader = Config.DEBUG and os.name != 'nt'
+    if Config.DEBUG and not use_reloader:
+        logger.info('Debug reloader disabled on Windows to avoid socket WinError 10038')
+
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=Config.FLASK_PORT,
+        debug=Config.DEBUG,
+        use_reloader=use_reloader,
+    )

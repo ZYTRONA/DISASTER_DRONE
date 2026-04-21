@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import LiveMap from "./pages/LiveMap";
 import LiveRequests from "./pages/LiveRequests";
 import History from "./pages/History";
+import DroneOperations from "./pages/DroneOperations";
 import "./App.css";
 
 function AppContent() {
@@ -25,6 +26,8 @@ function AppContent() {
         return <LiveMap />;
       case "requests":
         return <LiveRequests />;
+      case "operations":
+        return <DroneOperations />;
       case "history":
         return <History />;
       default:
