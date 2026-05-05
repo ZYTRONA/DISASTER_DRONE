@@ -94,7 +94,7 @@ socketio = SocketIO(
     cors_allowed_origins=Config.CORS_ORIGINS,
     ping_timeout=60,
     ping_interval=25,
-    async_mode='threading',
+    async_mode='eventlet',
     logger=False,
     engineio_logger=False,
 )
