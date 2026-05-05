@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useAppContext } from '../context/AppContext';
 import { Colors } from '../themes/colors';
+import { getCurrentLocation } from '../services/location';
 import { FOOD_ITEMS, MEDICINE_ITEMS, FIRST_AID_ITEMS } from '../utils/constants';
 
 const ITEM_GRID_COLS = 2;
@@ -141,6 +142,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
   // Form state
   const [selectedItems, setSelectedItems] = useState({});
   const [people, setPeople] = useState(1);
+  const [userName, setUserName] = useState(''); // User's name for request
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [slideTick, setSlideTick] = useState(0);
@@ -236,8 +238,31 @@ export default function ItemSelectionScreen({ navigation, route }) {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    // NEW: Validate name
+    if (!userName.trim()) {
+      Alert.alert('Required', 'Please enter your name');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Get user location before submitting
+      let location = { lat: 0, lon: 0 };
+      try {
+        location = await getCurrentLocation();
+        console.log('✅ Location obtained:', location);
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Could not get location';
+        console.warn('⚠️ Location error:', errorMsg);
+        Toast.show({
+          type: 'info',
+          text1: 'Location Not Available',
+          text2: errorMsg,
+          duration: 3000,
+        });
+        // Continue with 0,0 if location fails
+      }
+
       const itemsList = items
         .filter((item) => selectedItems[item.id])
         .map((item) => ({
@@ -247,15 +272,22 @@ export default function ItemSelectionScreen({ navigation, route }) {
           quantity: selectedItems[item.id],
         }));
 
+      console.log('🛒 Selected items:', itemsList);
+      console.log('👤 User name:', userName);
+      console.log('📍 Location:', location);
+
       const requestData = {
         resource: category,
         urgency: urgency || 'normal',
+        name: userName.trim(), // Include user name - VALIDATED
         items: itemsList,
         people,
         notes,
+        location, // Include location
         timestamp: new Date().toISOString(),
       };
 
+      console.log('📋 Request data:', requestData);
       await submitRequest?.(requestData);
 
       Toast.show({
@@ -277,7 +309,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
 
   const urgencyLevel = urgency || 'normal';
   const urgencyColor =
-    urgencyLevel === 'critical'
+    urgencyLevel === 'urgent'
       ? Colors.danger
       : urgencyLevel === 'high'
       ? Colors.secondary
@@ -298,6 +330,12 @@ export default function ItemSelectionScreen({ navigation, route }) {
           contentContainerStyle={styles.scrollContent}
           bounces={false}
         >
+          {/* Brand Header */}
+          <View style={styles.brandHeader}>
+            <Ionicons name="radio" size={28} color={Colors.primary} style={styles.brandLogo} />
+            <Text style={styles.brandTitle}>zydro</Text>
+          </View>
+
           {/* Header */}
           <Animated.View
             style={[
@@ -420,6 +458,28 @@ export default function ItemSelectionScreen({ navigation, route }) {
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Your Details</Text>
 
+            {/* Name Field - NEW */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Your Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={Colors.textSecondary}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={userName}
+                  onChangeText={setUserName}
+                  editable={!loading}
+                  maxLength={50}
+                />
+              </View>
+            </View>
+
             {/* People Count */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Number of People</Text>
@@ -523,6 +583,26 @@ const styles = {
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+
+  // Brand Header
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+    position: 'relative',
+  },
+  brandLogo: {
+    position: 'absolute',
+    left: 0,
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
 
   // Header

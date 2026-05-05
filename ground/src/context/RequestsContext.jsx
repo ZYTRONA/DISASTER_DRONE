@@ -28,25 +28,39 @@ export function RequestsProvider({ children }) {
     socket.on("connect", () => {
       console.log("[Socket] Connected");
       setConnected(true);
+      socket.emit("join", { room: "gcs" });
     });
     socket.on("disconnect", () => {
       console.log("[Socket] Disconnected");
       setConnected(false);
     });
     setConnected(socket.connected);
-
-    // Listen for new requests
-    socket.on("new_request", (request) => {
-      console.log("[Socket] New request received:", request);
-      setRequests((prev) => [request, ...prev]);
-    });
+    if (socket.connected) {
+      socket.emit("join", { room: "gcs" });
+    }
 
     // Listen for status updates
     socket.on("request_update", (update) => {
       console.log("[Socket] Request update received:", update);
       setRequests((prev) =>
-        prev.map((r) => (r.id === update.id ? { ...r, ...update } : r))
+        prev.map((r) =>
+          (r.id === update.id || r.id === update._id || r._id === update.id || r._id === update._id)
+            ? { ...r, ...update, id: r.id }
+            : r
+        )
       );
+    });
+
+    // Listen for new requests
+    socket.on("new_request", (request) => {
+      console.log("[Socket] New request received:", request);
+      // Normalize: ensure id field is always present
+      const normalized = { ...request, id: request.id || request._id };
+      setRequests((prev) => {
+        // Avoid duplicates
+        if (prev.some((r) => r.id === normalized.id || r._id === normalized._id)) return prev;
+        return [normalized, ...prev];
+      });
     });
 
     return () => {

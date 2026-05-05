@@ -1,6 +1,6 @@
 // Environment-based API configuration
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const REQUEST_TIMEOUT = 10000; // 10 seconds
+const REQUEST_TIMEOUT = 30000; // 30 seconds - increased for slow/distant connections
 
 console.log("[API] Initialized with URL:", API_URL);
 
@@ -15,7 +15,7 @@ async function fetchAPI(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
   const defaultHeaders = {
     "Content-Type": "application/json",
-    "User-Agent": "NDRF-GroundStation/1.0",
+    "User-Agent": "zydro-GroundStation/1.0",
   };
 
   // Add auth token if available (for future JWT implementation)

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "NDRF Mobile",
-    "slug": "ndrf-mobile",
+    "name": "zydro",
+    "slug": "zydro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,7 +14,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "requireFullScreen": true,
-      "bundleIdentifier": "com.ndrf.mobile"
+      "bundleIdentifier": "com.zydro.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +27,7 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
       ],
-      "package": "com.ndrf.mobile"
+      "package": "com.zydro.mobile"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -36,11 +36,11 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow NDRF to access your location for disaster relief coordination."
+          "locationAlwaysAndWhenInUsePermission": "Allow zydro to access your location for disaster relief coordination."
         }
       ]
     ],
-    "scheme": "ndrfmobile",
-    "description": "NDRF Mobile App for disaster management and relief coordination"
+    "scheme": "zydromobile",
+    "description": "zydro Mobile App for disaster management and relief coordination"
   }
 }

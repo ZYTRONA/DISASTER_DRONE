@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { Colors } from '../themes/colors';
-import { CATEGORIES, RESOURCE_LABELS, URGENCY_LEVELS } from '../utils/constants';
+import { CATEGORIES, RESOURCE_LABELS, PRIORITY_LEVELS } from '../utils/constants';
 
 const { width } = Dimensions.get('window');
 const GRID_COLS = 3;
@@ -28,7 +28,7 @@ const ITEM_SIZE = (width - 40) / GRID_COLS - 8;
 export default function CategoryScreen({ navigation }) {
   const { chooseCategory } = useAppContext();
   const [selectedResource, setSelectedResource] = useState(null);
-  const [selectedUrgency, setSelectedUrgency] = useState('normal');
+  const [selectedPriority, setSelectedPriority] = useState('normal');
 
   // Animations
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -60,15 +60,15 @@ export default function CategoryScreen({ navigation }) {
 
     Alert.alert(
       '🚨 Confirm SOS',
-      'This will send an immediate critical priority request. Are you sure?',
+      'This will send an immediate urgent priority request. Are you sure?',
       [
         { text: 'Cancel', onPress: () => {}, style: 'cancel' },
         {
           text: 'Send SOS',
           onPress: () => {
             setSelectedResource('Emergency');
-            setSelectedUrgency('critical');
-            handleProceed();
+            setSelectedPriority('urgent');
+            handleProceed('urgent');
           },
           style: 'destructive',
         },
@@ -85,16 +85,15 @@ export default function CategoryScreen({ navigation }) {
     ]).start();
   };
 
-  const handleProceed = () => {
+  const handleProceed = (overrideUrgency) => {
     if (!selectedResource) {
       Alert.alert('Select Resource', 'Please choose what you need assistance with');
       return;
     }
 
-    // Navigate to ItemSelectionScreen
     navigation.navigate('Items', {
       category: selectedResource,
-      urgency: selectedUrgency,
+      urgency: overrideUrgency || selectedPriority,
     });
   };
 
@@ -116,6 +115,12 @@ export default function CategoryScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         bounces={false}
       >
+        {/* Brand Header */}
+        <View style={styles.brandHeader}>
+          <Ionicons name="radio" size={28} color={Colors.primary} style={styles.brandLogo} />
+          <Text style={styles.brandTitle}>zydro</Text>
+        </View>
+
         {/* SOS Button - Very Top */}
         <Animated.View
           style={[
@@ -199,42 +204,42 @@ export default function CategoryScreen({ navigation }) {
         </View>
 
         {/* Urgency Selector */}
-        <View style={styles.urgencySection}>
+        <View style={styles.prioritySection}>
           <Text style={styles.sectionTitle}>Response Priority</Text>
-          <View style={styles.urgencyContainer}>
-            {URGENCY_LEVELS.map((level) => (
+          <View style={styles.priorityContainer}>
+            {PRIORITY_LEVELS.map((level) => (
               <TouchableOpacity
                 key={level.id}
                 activeOpacity={0.7}
-                onPress={() => setSelectedUrgency(level.id)}
+                onPress={() => setSelectedPriority(level.id)}
                 style={[
-                  styles.urgencyButton,
-                  selectedUrgency === level.id && styles.urgencyButtonActive,
+                  styles.priorityButton,
+                  selectedPriority === level.id && styles.priorityButtonActive,
                 ]}
               >
                 <View
                   style={[
-                    styles.urgencyDot,
+                    styles.priorityDot,
                     {
                       backgroundColor: level.color,
-                      borderColor: selectedUrgency === level.id ? Colors.textPrimary : Colors.border,
+                      borderColor: selectedPriority === level.id ? Colors.textPrimary : Colors.border,
                     },
                   ]}
                 />
-                <View style={styles.urgencyTextContainer}>
-                  <Text style={styles.urgencyLabel}>{level.label}</Text>
-                  <Text style={styles.urgencyDescription}>{level.description}</Text>
+                <View style={styles.priorityTextContainer}>
+                  <Text style={styles.priorityLabel}>{level.label}</Text>
+                  <Text style={styles.priorityDescription}>{level.description}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Warning for Critical */}
-        {selectedUrgency === 'critical' && (
+        {/* Warning for Urgent */}
+        {selectedPriority === 'urgent' && (
           <View style={styles.warningBox}>
             <Ionicons name="information-circle" size={20} color="#f59e0b" />
-            <Text style={styles.warningText}>Critical requests get priority dispatch within minutes</Text>
+            <Text style={styles.warningText}>Urgent requests get priority dispatch within minutes</Text>
           </View>
         )}
 
@@ -296,6 +301,26 @@ const styles = {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 4,
+  },
+
+  // Brand Header
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    paddingVertical: 12,
+    position: 'relative',
+  },
+  brandLogo: {
+    position: 'absolute',
+    left: 0,
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
 
   // Header
@@ -386,7 +411,7 @@ const styles = {
   },
 
   // Urgency
-  urgencySection: {
+  prioritySection: {
     marginBottom: 24,
   },
   sectionTitle: {
@@ -395,10 +420,10 @@ const styles = {
     color: Colors.textPrimary,
     marginBottom: 12,
   },
-  urgencyContainer: {
+  priorityContainer: {
     gap: 10,
   },
-  urgencyButton: {
+  priorityButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
@@ -407,26 +432,26 @@ const styles = {
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  urgencyButtonActive: {
+  priorityButtonActive: {
     backgroundColor: Colors.surfaceHover,
     borderColor: Colors.primary,
   },
-  urgencyDot: {
+  priorityDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     marginRight: 12,
     borderWidth: 2,
   },
-  urgencyTextContainer: {
+  priorityTextContainer: {
     flex: 1,
   },
-  urgencyLabel: {
+  priorityLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
-  urgencyDescription: {
+  priorityDescription: {
     fontSize: 11,
     color: Colors.textSecondary,
     marginTop: 2,

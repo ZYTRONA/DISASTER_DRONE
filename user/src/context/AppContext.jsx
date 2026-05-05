@@ -151,26 +151,56 @@ export function AppProvider({ children }) {
   const submitRequest = useCallback(async (requestData) => {
     try {
       setLoading(true);
-      const { resource, urgency, name, people, location, notes } = requestData;
+      const { resource, urgency, name, people, location, notes, items } = requestData;
+      
+      // Capitalize urgency to match backend expected values
+      const urgencyMap = { critical: 'Critical', urgent: 'Urgent', high: 'High', normal: 'Normal' };
+      const normalizedUrgency = urgencyMap[urgency?.toLowerCase()] || 'Normal';
+      
+      // Validate location with detailed logging
+      const lat = location?.lat ?? 0;
+      const lon = location?.lon ?? 0;
+      const accuracy = location?.accuracy ?? null;
+      const hasValidLocation = lat !== 0 || lon !== 0;
+      
+      console.log('🗺️ Location Data:', { lat, lon, accuracy, hasValidLocation });
+      
+      if (!hasValidLocation) {
+        console.warn('⚠️ WARNING: Request submitted without valid location. Using placeholder (0,0)');
+      }
+      
+      // Build items description for cart
+      const itemsDescription = items && items.length > 0
+        ? items.map(item => `${item.quantity}x ${item.name}`).join(', ')
+        : 'No items specified';
+      
+      console.log('📦 Items:', itemsDescription);
       
       // Transform request data to API format
       const payload = {
         resource: resource || 'General',
+        urgency: normalizedUrgency,
         cart: {
           items_count: people || 1,
-          notes: `${name} - ${notes || 'No additional notes'}`,
+          items_list: items || [],
+          notes: itemsDescription,
         },
-        note: `${name} requested ${resource} for ${people} people${notes ? ': ' + notes : ''}`,
-        lat: location?.lat || 0,
-        lon: location?.lon || 0,
+        note: `${name} requested ${resource} for ${people} people. Items: ${itemsDescription}${notes ? '. ' + notes : ''}`,
+        lat: lat,
+        lon: lon,
       };
 
       console.log('📤 Submitting request:', payload);
       const response = await submitRequestAPI(payload);
       
+      console.log('✅ Response:', response);
+
       // Store the refId and dbId from response
-      if (response?.refId && response?.id) {
-        await setRequest(response.refId, response.id, payload.note);
+      const refId = response?.refId || response?.ref_id;
+      const dbId = response?.id || response?.request_id;
+
+      if (refId && dbId) {
+        await setRequest(refId, dbId, payload.note);
       }
       
       setStatusMsg({

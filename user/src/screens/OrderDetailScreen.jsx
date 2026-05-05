@@ -172,6 +172,12 @@ export default function OrderDetailScreen({ navigation, route }) {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
 
+      {/* Brand Header */}
+      <View style={styles.brandHeader}>
+        <Ionicons name="radio" size={28} color="#2563eb" style={styles.brandLogo} />
+        <Text style={styles.brandTitle}>zydro</Text>
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -268,6 +274,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    position: 'relative',
+  },
+  brandLogo: {
+    position: 'absolute',
+    left: 16,
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#2563eb',
+    letterSpacing: 0.5,
   },
   header: {
     flexDirection: 'row',

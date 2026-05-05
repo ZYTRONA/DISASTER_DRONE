@@ -85,7 +85,7 @@ export const initializeApi = async () => {
       timeout: REQUEST_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': `NDRF-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
+        'User-Agent': `zydro-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
       },
     });
 
@@ -110,7 +110,7 @@ export const reinitializeApi = async (newUrl) => {
       timeout: REQUEST_TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': `NDRF-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
+        'User-Agent': `zydro-MobileApp/${process.env.EXPO_PUBLIC_APP_VERSION || '1.0'}`,
       },
     });
 
@@ -179,7 +179,7 @@ export const submitRequest = async ({
   note,
   lat,
   lon,
-  urgency = 'Urgent', // 'Critical' | 'High' | 'Urgent' | 'Normal'
+  urgency = 'Normal', // 'Urgent' | 'High' | 'Normal'
 }) => {
   try {
     const response = await retryRequest(() =>

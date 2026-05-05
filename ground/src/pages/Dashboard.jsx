@@ -289,7 +289,7 @@ export default function Dashboard() {
       total: requests.length,
       active: requests.filter((r) => r.status !== "Delivered" && r.status !== "UserConfirmed").length,
       delivered: requests.filter((r) => r.status === "Delivered" || r.status === "UserConfirmed").length,
-      urgent: requests.filter((r) => r.status === "Urgent" || r.urgency === "Critical").length,
+      urgent: requests.filter((r) => r.status === "Urgent" || r.priority === "Critical").length,
       assigned: requests.filter((r) => r.status === "Assigned").length,
     };
     setStats(newStats);

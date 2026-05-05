@@ -72,7 +72,7 @@ export default function RequestMap({ requests, onSelectRequest }) {
 
       <FitBounds requests={activeRequests} />
 
-      {activeRequests.map((request) => {
+      {requests.map((request) => {
         const latitude = request.lat ?? request.latitude;
         const longitude = request.lon ?? request.longitude;
 

@@ -8,13 +8,15 @@ console.log("[Socket] Configured for:", BACKEND_URL);
 export const socket = io(BACKEND_URL, {
   autoConnect: true,
   reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  transports: ["websocket", "polling"],  // Support both transports
+  reconnectionAttempts: Infinity,  // Keep trying indefinitely
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 10000,
+  transports: ["websocket", "http_long_polling", "http_polling"],  // Multiple fallback transports
+  timeout: 10000,  // Connection timeout
+  forceNew: false,
   // Add auth header when available (for future JWT implementation)
   extraHeaders: {
-    "User-Agent": "NDRF-GroundStation/1.0",
+    "User-Agent": "zydro-GroundStation/1.0",
   },
   withCredentials: true,  // Allow credentials across origins
 });

@@ -166,6 +166,12 @@ export default function ConfirmationScreen({ navigation }) {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* Brand Header */}
+        <View style={styles.brandHeader}>
+          <Ionicons name="radio" size={28} color={Colors.primary} style={styles.brandLogo} />
+          <Text style={styles.brandTitle}>zydro</Text>
+        </View>
+
         {/* Hero */}
         <View style={styles.heroCard}>
           <View style={styles.heroIconWrap}>

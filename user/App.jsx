@@ -34,7 +34,7 @@ function LoadingScreen() {
   return (
     <View style={styles.centeredScreen}>
       <ActivityIndicator size="large" color="#2563eb" />
-      <Text style={styles.loadingText}>Starting NDRF Mobile...</Text>
+      <Text style={styles.loadingText}>Starting zydro...</Text>
     </View>
   );
 }

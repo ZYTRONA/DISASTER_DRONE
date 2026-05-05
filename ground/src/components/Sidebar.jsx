@@ -1,4 +1,4 @@
-import { LayoutDashboard, Map, History, Radio, Zap, Menu, X, Gamepad2 } from "lucide-react";
+import { LayoutDashboard, Map, History, Zap, Menu, X, Gamepad2 } from "lucide-react";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -13,8 +13,7 @@ export default function Sidebar({ activeView, setActiveView, connected, isCollap
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo">
-          <Radio size={24} />
-          {!isCollapsed && <span>NDRF GCS</span>}
+          <img src="/zydro-logo.svg" alt="zydro" className="logo-image" />
         </div>
         <button
           className="sidebar-toggle"

@@ -45,8 +45,8 @@ export const RESOURCE_LABELS = {
 };
 
 export const URGENCY_LEVELS = [
-  { id: 'critical', label: 'Critical', color: '#ef4444', description: 'Life-threatening emergency' },
-  { id: 'high', label: 'High', color: '#f59e0b', description: 'Urgent but not immediate threat' },
+  { id: 'urgent', label: 'Urgent', color: '#ef4444', description: 'Immediate emergency response' },
+  { id: 'high', label: 'High', color: '#f59e0b', description: 'Priority assistance needed' },
   { id: 'normal', label: 'Normal', color: '#06b6d4', description: 'Regular assistance needed' },
 ];
 

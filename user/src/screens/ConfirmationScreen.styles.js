@@ -14,6 +14,24 @@ const styles = StyleSheet.create({
     paddingTop: THEME.spacing.lg,
     paddingBottom: THEME.spacing.xxxl,
   },
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.md,
+    position: 'relative',
+  },
+  brandLogo: {
+    position: 'absolute',
+    left: 0,
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontWeight: fw(THEME.typography.weight.bold),
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
   heroCard: {
     backgroundColor: Colors.primary,
     borderRadius: THEME.borderRadius.xl,

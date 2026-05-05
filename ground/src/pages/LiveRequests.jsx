@@ -30,6 +30,236 @@ const GS_PRESETS = [
   { name: "Kolkata Unit", lat: 22.5726, lon: 88.3639 },
 ];
 
+// India Districts Database - Organized by State (Comprehensive List)
+const INDIA_DISTRICTS = {
+  "Andhra Pradesh": [
+    { name: "Visakhapatnam", lat: 17.6869, lon: 83.2185 },
+    { name: "Vijayawada", lat: 16.5062, lon: 80.6480 },
+    { name: "Guntur", lat: 16.3067, lon: 80.4365 },
+    { name: "Nellore", lat: 14.4426, lon: 79.9864 },
+    { name: "Chittoor", lat: 13.1939, lon: 79.1022 },
+    { name: "Tirupati", lat: 13.1939, lon: 79.8941 },
+    { name: "Ongole", lat: 14.6348, lon: 79.6296 },
+    { name: "Tenali", lat: 16.2471, lon: 80.6485 },
+  ],
+  "Arunachal Pradesh": [
+    { name: "Itanagar", lat: 28.2180, lon: 93.6053 },
+    { name: "Papum Pare", lat: 27.8974, lon: 93.6150 },
+    { name: "Changlang", lat: 27.4278, lon: 95.9369 },
+    { name: "Pasighat", lat: 28.0653, lon: 93.8226 },
+  ],
+  "Assam": [
+    { name: "Guwahati", lat: 26.1445, lon: 91.7362 },
+    { name: "Dibrugarh", lat: 27.4891, lon: 95.2972 },
+    { name: "Silchar", lat: 24.8154, lon: 92.7979 },
+    { name: "Barpeta", lat: 26.3169, lon: 90.2669 },
+    { name: "Nagaon", lat: 26.1524, lon: 92.6527 },
+    { name: "Tinsukia", lat: 27.4831, lon: 95.3640 },
+  ],
+  "Bihar": [
+    { name: "Patna", lat: 25.5941, lon: 85.1376 },
+    { name: "Gaya", lat: 24.7914, lon: 84.9864 },
+    { name: "Bhagalpur", lat: 25.2816, lon: 86.4766 },
+    { name: "Muzaffarpur", lat: 26.1209, lon: 85.3905 },
+    { name: "Darbhanga", lat: 26.1561, lon: 85.8755 },
+    { name: "Arrah", lat: 25.5580, lon: 84.6649 },
+    { name: "Biharsharif", lat: 25.2031, lon: 85.5307 },
+  ],
+  "Chhattisgarh": [
+    { name: "Raipur", lat: 21.2514, lon: 81.6296 },
+    { name: "Durg", lat: 21.1868, lon: 81.2752 },
+    { name: "Bilaspur", lat: 22.0796, lon: 82.1581 },
+    { name: "Rajnandgaon", lat: 22.6626, lon: 81.0349 },
+    { name: "Jabalpur", lat: 23.1815, lon: 79.9864 },
+    { name: "Raigarh", lat: 21.8967, lon: 83.4171 },
+  ],
+  "Goa": [
+    { name: "Panaji", lat: 15.4909, lon: 73.8278 },
+    { name: "Margao", lat: 15.2993, lon: 73.9567 },
+    { name: "Vasco da Gama", lat: 15.3865, lon: 73.8189 },
+    { name: "Ponda", lat: 15.3989, lon: 73.9847 },
+  ],
+  "Gujarat": [
+    { name: "Ahmedabad", lat: 23.0225, lon: 72.5714 },
+    { name: "Vadodara", lat: 22.3072, lon: 73.1812 },
+    { name: "Surat", lat: 21.1702, lon: 72.8311 },
+    { name: "Rajkot", lat: 22.3039, lon: 70.8022 },
+    { name: "Jamnagar", lat: 22.4707, lon: 70.0577 },
+    { name: "Bhavnagar", lat: 21.7645, lon: 71.9520 },
+    { name: "Anand", lat: 22.5645, lon: 72.9289 },
+    { name: "Gandhinagar", lat: 23.2156, lon: 72.6369 },
+    { name: "Junagadh", lat: 21.5230, lon: 70.4606 },
+  ],
+  "Haryana": [
+    { name: "Faridabad", lat: 28.4089, lon: 77.3178 },
+    { name: "Gurgaon", lat: 28.4595, lon: 77.0266 },
+    { name: "Hisar", lat: 29.1724, lon: 75.7339 },
+    { name: "Rohtak", lat: 28.8955, lon: 76.5631 },
+    { name: "Panipat", lat: 29.3910, lon: 77.2713 },
+    { name: "Kurukshetra", lat: 29.9689, lon: 76.8633 },
+  ],
+  "Himachal Pradesh": [
+    { name: "Shimla", lat: 31.7725, lon: 77.1097 },
+    { name: "Mandi", lat: 32.2397, lon: 76.9295 },
+    { name: "Solan", lat: 30.9046, lon: 77.1624 },
+    { name: "Kangra", lat: 32.2206, lon: 76.2616 },
+    { name: "Bilaspur", lat: 31.2863, lon: 76.7660 },
+    { name: "Nahan", lat: 30.5526, lon: 77.2558 },
+  ],
+  "Jharkhand": [
+    { name: "Ranchi", lat: 23.3441, lon: 85.3096 },
+    { name: "Jamshedpur", lat: 22.8046, lon: 86.1856 },
+    { name: "Dhanbad", lat: 23.7957, lon: 86.4304 },
+    { name: "Giridih", lat: 24.1767, lon: 85.3235 },
+    { name: "Bokaro", lat: 23.6673, lon: 85.3167 },
+    { name: "Hazaribagh", lat: 23.9989, lon: 85.3586 },
+  ],
+  "Karnataka": [
+    { name: "Bangalore", lat: 12.9716, lon: 77.5946 },
+    { name: "Mysore", lat: 12.2958, lon: 76.6394 },
+    { name: "Mangalore", lat: 12.8697, lon: 74.8597 },
+    { name: "Belgaum", lat: 15.8601, lon: 74.5028 },
+    { name: "Hubballi", lat: 15.3647, lon: 75.1240 },
+    { name: "Davangere", lat: 14.4644, lon: 75.9218 },
+    { name: "Gulbarga", lat: 17.3297, lon: 76.8343 },
+    { name: "Bijapur", lat: 16.8293, lon: 75.7139 },
+  ],
+  "Kerala": [
+    { name: "Thiruvananthapuram", lat: 8.5241, lon: 76.9366 },
+    { name: "Kochi", lat: 9.9312, lon: 76.2673 },
+    { name: "Kozhikode", lat: 11.2588, lon: 75.7804 },
+    { name: "Thrissur", lat: 10.5269, lon: 76.2144 },
+    { name: "Kottayam", lat: 9.5941, lon: 76.5214 },
+    { name: "Kannur", lat: 12.0193, lon: 75.3696 },
+    { name: "Idukki", lat: 10.3788, lon: 76.8593 },
+  ],
+  "Madhya Pradesh": [
+    { name: "Bhopal", lat: 23.1815, lon: 79.9864 },
+    { name: "Indore", lat: 22.7196, lon: 75.8577 },
+    { name: "Gwalior", lat: 26.2183, lon: 78.1628 },
+    { name: "Jabalpur", lat: 23.1815, lon: 79.9864 },
+    { name: "Ujjain", lat: 23.1815, lon: 75.7850 },
+    { name: "Sagar", lat: 22.7368, lon: 78.7641 },
+    { name: "Ratlam", lat: 23.3365, lon: 75.0417 },
+  ],
+  "Maharashtra": [
+    { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
+    { name: "Pune", lat: 18.5204, lon: 73.8567 },
+    { name: "Nagpur", lat: 21.1458, lon: 79.0882 },
+    { name: "Nashik", lat: 19.9975, lon: 73.7898 },
+    { name: "Aurangabad", lat: 19.8762, lon: 75.3433 },
+    { name: "Kolhapur", lat: 16.7050, lon: 74.2388 },
+    { name: "Solapur", lat: 17.6599, lon: 75.9064 },
+    { name: "Amravati", lat: 20.9337, lon: 77.7597 },
+    { name: "Thane", lat: 19.2183, lon: 72.9781 },
+  ],
+  "Manipur": [
+    { name: "Imphal", lat: 24.8170, lon: 94.9036 },
+    { name: "Senapati", lat: 25.0241, lon: 94.4742 },
+    { name: "Ukhrul", lat: 24.5628, lon: 94.8204 },
+  ],
+  "Meghalaya": [
+    { name: "Shillong", lat: 25.5788, lon: 91.8933 },
+    { name: "Tura", lat: 25.5148, lon: 90.2391 },
+    { name: "Cherrapunji", lat: 25.2727, lon: 91.7346 },
+  ],
+  "Mizoram": [
+    { name: "Aizawl", lat: 23.7271, lon: 93.3162 },
+    { name: "Lunglei", lat: 22.8833, lon: 92.7833 },
+    { name: "Saiha", lat: 22.4280, lon: 92.9831 },
+  ],
+  "Nagaland": [
+    { name: "Kohima", lat: 25.6114, lon: 94.1086 },
+    { name: "Dimapur", lat: 25.9050, lon: 93.7263 },
+    { name: "Mokokchung", lat: 26.0835, lon: 94.4803 },
+  ],
+  "Odisha": [
+    { name: "Bhubaneswar", lat: 20.2961, lon: 85.8245 },
+    { name: "Cuttack", lat: 20.4625, lon: 85.8830 },
+    { name: "Rourkela", lat: 22.2263, lon: 84.8540 },
+    { name: "Balasore", lat: 21.4885, lon: 86.9270 },
+    { name: "Berhampur", lat: 19.3150, lon: 84.7941 },
+    { name: "Sambalpur", lat: 21.4684, lon: 83.9973 },
+  ],
+  "Punjab": [
+    { name: "Chandigarh", lat: 30.7333, lon: 76.8167 },
+    { name: "Amritsar", lat: 31.6340, lon: 74.8723 },
+    { name: "Ludhiana", lat: 30.9010, lon: 75.8573 },
+    { name: "Jalandhar", lat: 31.8254, lon: 75.5762 },
+    { name: "Patiala", lat: 30.3398, lon: 76.3869 },
+    { name: "Bathinda", lat: 30.2156, lon: 74.9421 },
+    { name: "Mohali", lat: 30.6394, lon: 76.7462 },
+  ],
+  "Rajasthan": [
+    { name: "Jaipur", lat: 26.9124, lon: 75.7873 },
+    { name: "Jodhpur", lat: 26.2389, lon: 73.0243 },
+    { name: "Udaipur", lat: 24.5854, lon: 73.7125 },
+    { name: "Bikaner", lat: 28.0229, lon: 71.8315 },
+    { name: "Ajmer", lat: 26.4499, lon: 74.6399 },
+    { name: "Kota", lat: 25.2183, lon: 75.8245 },
+    { name: "Alwar", lat: 27.5673, lon: 76.6249 },
+    { name: "Bhilwara", lat: 25.3424, lon: 74.6288 },
+  ],
+  "Tamil Nadu": [
+    { name: "Chennai", lat: 13.0827, lon: 80.2707 },
+    { name: "Coimbatore", lat: 11.0168, lon: 76.9558 },
+    { name: "Madurai", lat: 9.9252, lon: 78.1198 },
+    { name: "Salem", lat: 11.6643, lon: 78.1460 },
+    { name: "Tiruchirappalli", lat: 10.7905, lon: 78.7047 },
+    { name: "Erode", lat: 11.3919, lon: 77.7173 },
+    { name: "Karur", lat: 10.9352, lon: 78.1389 },
+    { name: "Tiruppur", lat: 11.1085, lon: 77.3411 },
+    { name: "Kanyakumari", lat: 8.0883, lon: 77.5385 },
+    { name: "Villupuram", lat: 12.9606, lon: 79.8953 },
+    { name: "Ranipet", lat: 12.9252, lon: 79.8847 },
+  ],
+  "Telangana": [
+    { name: "Hyderabad", lat: 17.3850, lon: 78.4867 },
+    { name: "Warangal", lat: 17.9689, lon: 79.5941 },
+    { name: "Nizamabad", lat: 19.2746, lon: 78.1379 },
+    { name: "Khammam", lat: 17.2687, lon: 80.6189 },
+    { name: "Suryapet", lat: 17.1408, lon: 79.6278 },
+  ],
+  "Tripura": [
+    { name: "Agartala", lat: 23.8103, lon: 91.2788 },
+    { name: "Udaipur", lat: 23.5342, lon: 91.4871 },
+    { name: "Dharmanagar", lat: 23.6000, lon: 91.2700 },
+  ],
+  "Uttar Pradesh": [
+    { name: "Lucknow", lat: 26.8467, lon: 80.9462 },
+    { name: "Kanpur", lat: 26.4499, lon: 80.3319 },
+    { name: "Agra", lat: 27.1767, lon: 78.0081 },
+    { name: "Varanasi", lat: 25.3200, lon: 82.9855 },
+    { name: "Meerut", lat: 28.9845, lon: 77.7064 },
+    { name: "Ghaziabad", lat: 28.6692, lon: 77.4538 },
+    { name: "Noida", lat: 28.5355, lon: 77.3910 },
+    { name: "Allahabad", lat: 25.4358, lon: 81.8463 },
+    { name: "Mathura", lat: 27.4924, lon: 77.6737 },
+  ],
+  "Uttarakhand": [
+    { name: "Dehradun", lat: 30.3165, lon: 78.0322 },
+    { name: "Haridwar", lat: 29.9457, lon: 78.1642 },
+    { name: "Rudraprayag", lat: 30.2833, lon: 78.9833 },
+    { name: "Almora", lat: 29.5880, lon: 79.6447 },
+    { name: "Nainital", lat: 29.3804, lon: 79.4555 },
+  ],
+  "West Bengal": [
+    { name: "Kolkata", lat: 22.5726, lon: 88.3639 },
+    { name: "Darjeeling", lat: 27.0360, lon: 88.2605 },
+    { name: "Siliguri", lat: 26.5312, lon: 88.4120 },
+    { name: "Asansol", lat: 23.6834, lon: 86.9649 },
+    { name: "Durgapur", lat: 23.7957, lon: 87.3163 },
+    { name: "Howrah", lat: 22.5958, lon: 88.2636 },
+  ],
+  "Delhi": [
+    { name: "New Delhi", lat: 28.6139, lon: 77.2090 },
+    { name: "East Delhi", lat: 28.5921, lon: 77.3055 },
+    { name: "West Delhi", lat: 28.6432, lon: 77.0316 },
+    { name: "South Delhi", lat: 28.5221, lon: 77.2047 },
+    { name: "North Delhi", lat: 28.7314, lon: 77.2316 },
+  ],
+};
+
 // Load saved GS location from localStorage
 function loadGSLocation() {
   try {
@@ -87,6 +317,31 @@ function clampToIndia(lat, lon) {
   };
 }
 
+// Find nearest district/area name from coordinates
+function getNearestAreaName(lat, lon) {
+  if (!lat || !lon) return "Unknown";
+
+  let nearestDistrict = null;
+  let minDistance = Infinity;
+
+  Object.entries(INDIA_DISTRICTS).forEach(([state, districts]) => {
+    districts.forEach(district => {
+      const dist = calculateDistance(lat, lon, district.lat, district.lon);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestDistrict = { name: district.name, state, distance: dist };
+      }
+    });
+  });
+
+  // If within 50km of a district, return it
+  if (nearestDistrict && nearestDistrict.distance <= 50) {
+    return `${nearestDistrict.name}, ${nearestDistrict.state}`;
+  }
+
+  return "Unknown";
+}
+
 function getRequestCoordinates(request) {
   const lat = Number(request?.lat ?? request?.latitude);
   const lon = Number(request?.lon ?? request?.longitude);
@@ -108,6 +363,26 @@ function getRequestCoordinates(request) {
   return { lat, lon };
 }
 
+// Get elapsed time from timestamp
+function getElapsedTime(timestamp) {
+  if (!timestamp) return "Unknown";
+  try {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+
+    if (diffSec < 60) return `${diffSec}s ago`;
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return "Unknown";
+  }
+}
+
 function getFocusZoom(distanceKm) {
   if (distanceKm <= 2) return 12;
   if (distanceKm <= 5) return 11;
@@ -116,6 +391,26 @@ function getFocusZoom(distanceKm) {
   if (distanceKm <= 150) return 8;
   if (distanceKm <= 400) return 7;
   return 6;
+}
+
+function formatDateTime(timestamp) {
+  if (!timestamp) return "N/A";
+  try {
+    const date = new Date(timestamp);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    hours = String(hours).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  } catch (e) {
+    return "Invalid date";
+  }
 }
 
 function normalizeViewState(vs) {
@@ -140,14 +435,44 @@ function hasViewStateChanged(prev, next) {
 }
 
 const statusColors = {
-  Pending: [234, 140, 85],      // #ea8c55
-  Assigned: [0, 102, 204],     // #0066cc
-  "In Transit": [0, 102, 204], // #0066cc
-  Delivered: [22, 163, 74],    // #16a34a
-  UserConfirmed: [22, 163, 74], // #16a34a
-  Urgent: [220, 38, 38],      // #dc2626
-  Critical: [220, 38, 38],    // #dc2626
+  Pending: [234, 140, 85],
+  Assigned: [0, 102, 204],
+  "In Transit": [0, 102, 204],
+  Delivered: [22, 163, 74],
+  UserConfirmed: [22, 163, 74],
 };
+
+const priorityConfig = {
+  Urgent:   { bg: "#fef2f2", color: "#dc2626", border: "#fca5a5" },
+  High:     { bg: "#fff7ed", color: "#ea580c", border: "#fdba74" },
+  Normal:   { bg: "#f0fdf4", color: "#16a34a", border: "#86efac" },
+};
+
+const PRIORITY_ORDER = { Urgent: 0, High: 1, Normal: 2 };
+const PRIORITY_ALIASES = {
+  urgent: "Urgent",
+  critical: "Urgent",
+  sos: "Urgent",
+  emergency: "Urgent",
+  high: "High",
+  normal: "Normal",
+  medium: "Normal",
+  low: "Normal",
+};
+
+function normalizePriority(value) {
+  if (!value) return "Normal";
+  const key = String(value).trim().toLowerCase();
+  return PRIORITY_ALIASES[key] || "Normal";
+}
+
+function getRequestPriority(request) {
+  return normalizePriority(request?.requested_urgency || request?.priority);
+}
+
+function getPriorityRank(request) {
+  return PRIORITY_ORDER[getRequestPriority(request)] ?? 99;
+}
 
 const OSM_RASTER_STYLE = {
   version: 8,
@@ -172,10 +497,103 @@ const OSM_RASTER_STYLE = {
 
 const OSRM_ROUTE_BASE = "https://router.project-osrm.org/route/v1/driving";
 
+function RequestDetailsModal({ isOpen, onClose, request, gsLocation }) {
+  if (!isOpen || !request) return null;
+
+  const coords = getRequestCoordinates(request);
+  const distance = coords ? calculateDistance(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon) : null;
+  const bearing = coords ? calculateBearing(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon) : null;
+  const direction = bearing ? getDirection(parseFloat(bearing)) : null;
+  const areaName = coords ? getNearestAreaName(coords.lat, coords.lon) : "Unknown";
+  const formattedId = `#${request.id?.toString().slice(-6).toUpperCase()}`;
+  const createdDate = formatDateTime(request.timestamp || request.created_at);
+
+  const detailRows = [
+    { label: "Request ID", value: formattedId },
+    { label: "Full ID", value: request.id },
+    { label: "Resource", value: request.resource },
+    { label: "Status", value: request.status },
+    { label: "Location", value: request.state || request.location || areaName },
+    { label: "Latitude", value: coords?.lat?.toFixed(6) || "N/A" },
+    { label: "Longitude", value: coords?.lon?.toFixed(6) || "N/A" },
+    { label: "Distance from GS", value: distance ? `${distance.toFixed(2)} km` : "N/A" },
+    { label: "Bearing", value: bearing ? `${bearing}° ${direction}` : "N/A" },
+    { label: "Description", value: request.note || "No notes" },
+    { label: "Created", value: createdDate },
+    { label: "Urgency", value: getRequestPriority(request) },
+  ];
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 2000,
+        padding: "20px",
+        backdropFilter: "blur(8px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))",
+          border: "1px solid rgba(0, 102, 204, 0.2)",
+          borderRadius: "16px",
+          maxWidth: "500px",
+          width: "100%",
+          maxHeight: "80vh",
+          overflowY: "auto",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.15)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: "inherit" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #0066cc, #004a99)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AlertCircle size={24} color="white" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: "18px", fontWeight: 900, color: "var(--text-primary)", margin: 0 }}>Request Details</h2>
+              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "4px 0 0 0" }}>#{request.id?.toString().slice(-6).toUpperCase()}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(0, 102, 204, 0.15)", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "8px", padding: "8px", cursor: "pointer" }}>
+            <X size={20} color="#0066cc" />
+          </button>
+        </div>
+
+        <div style={{ padding: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            {detailRows.map((row, idx) => (
+              <div key={idx} style={{ gridColumn: row.label === "Description" || row.label === "Requested By" ? "1 / -1" : "auto" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>
+                  {row.label}
+                </div>
+                <div style={{ fontSize: "13px", color: "var(--text-primary)", padding: "10px", background: "rgba(0, 102, 204, 0.05)", borderRadius: "8px", border: "1px solid rgba(0, 102, 204, 0.1)", wordBreak: "break-word" }}>
+                  {row.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
   const [customLat, setCustomLat] = useState(gsLocation.lat.toString());
   const [customLon, setCustomLon] = useState(gsLocation.lon.toString());
   const [customName, setCustomName] = useState(gsLocation.name);
+  const [selectedState, setSelectedState] = useState("");
+  const [districtSearch, setDistrictSearch] = useState("");
 
   if (!isOpen) return null;
 
@@ -200,6 +618,37 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
     setCustomName(preset.name);
   };
 
+  const handleDistrictSelect = (district) => {
+    setCustomLat(district.lat.toString());
+    setCustomLon(district.lon.toString());
+    setCustomName(district.name);
+    setDistrictSearch("");
+    setSelectedState("");
+  };
+
+  // Get filtered districts
+  const states = Object.keys(INDIA_DISTRICTS);
+  const filteredStates = states.filter(state => {
+    if (!selectedState && !districtSearch) return false;
+    if (selectedState) return state === selectedState;
+    return state.toLowerCase().includes(districtSearch.toLowerCase());
+  });
+
+  let filteredDistricts = [];
+  if (selectedState) {
+    filteredDistricts = INDIA_DISTRICTS[selectedState].filter(district =>
+      district.name.toLowerCase().includes(districtSearch.toLowerCase())
+    );
+  } else if (districtSearch) {
+    states.forEach(state => {
+      INDIA_DISTRICTS[state].forEach(district => {
+        if (district.name.toLowerCase().includes(districtSearch.toLowerCase())) {
+          filteredDistricts.push(district);
+        }
+      });
+    });
+  }
+
   return (
     <div
       style={{
@@ -214,6 +663,7 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
         justifyContent: "center",
         zIndex: 2000,
         padding: "20px",
+        backdropFilter: "blur(8px)",
       }}
       onClick={onClose}
     >
@@ -270,6 +720,103 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div style={{ marginBottom: "24px" }}>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              Search by District
+            </label>
+            <div style={{ marginBottom: "12px" }}>
+              <input
+                type="text"
+                placeholder="Search district..."
+                value={districtSearch}
+                onChange={(e) => setDistrictSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "rgba(0, 102, 204, 0.08)",
+                  border: "1px solid rgba(0, 102, 204, 0.2)",
+                  borderRadius: "10px",
+                  color: "var(--text-primary)",
+                  fontSize: "13px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  marginBottom: "8px"
+                }}
+              />
+              {districtSearch && !selectedState && (
+                <select
+                  onChange={(e) => setSelectedState(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    background: "rgba(0, 102, 204, 0.06)",
+                    border: "1px solid rgba(0, 102, 204, 0.15)",
+                    borderRadius: "8px",
+                    color: "var(--text-primary)",
+                    fontSize: "12px",
+                    outline: "none",
+                    boxSizing: "border-box",
+                    marginBottom: "8px"
+                  }}
+                  value=""
+                >
+                  <option value="">Select State</option>
+                  {filteredStates.map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              )}
+              {selectedState && (
+                <button
+                  onClick={() => setSelectedState("")}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    background: "rgba(0, 102, 204, 0.1)",
+                    border: "1px solid rgba(0, 102, 204, 0.2)",
+                    borderRadius: "8px",
+                    color: "#0066cc",
+                    fontSize: "12px",
+                    outline: "none",
+                    cursor: "pointer",
+                    marginBottom: "8px"
+                  }}
+                >
+                  ← Back to States
+                </button>
+              )}
+            </div>
+            {districtSearch && filteredDistricts.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", maxHeight: "200px", overflowY: "auto", paddingRight: "4px" }}>
+                {filteredDistricts.map((district) => (
+                  <button
+                    key={`${district.name}-${district.lat}`}
+                    onClick={() => handleDistrictSelect(district)}
+                    style={{
+                      padding: "10px",
+                      background: customName === district.name ? "linear-gradient(135deg, rgba(0, 102, 204, 0.15), rgba(0, 102, 204, 0.08))" : "rgba(0, 102, 204, 0.06)",
+                      border: `1px solid ${customName === district.name ? "rgba(0, 102, 204, 0.4)" : "rgba(0, 102, 204, 0.15)"}`,
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-primary)" }}>{district.name}</div>
+                    <div style={{ fontSize: "9px", color: "var(--text-muted)", marginTop: "2px" }}>
+                      {district.lat.toFixed(4)}°N, {district.lon.toFixed(4)}°E
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {districtSearch && filteredDistricts.length === 0 && (
+              <div style={{ padding: "16px", textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>
+                No districts found
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: "24px" }}>
@@ -389,6 +936,7 @@ export default function LiveRequests() {
   const { requests, loading, acceptRequest, setInTransit, markDelivered } = useRequests();
   const latestRequestIdRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [detailsRequest, setDetailsRequest] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [gsLocation, setGsLocation] = useState(loadGSLocation);
@@ -398,6 +946,16 @@ export default function LiveRequests() {
   const [roadRoute, setRoadRoute] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [viewState, setViewState] = useState(() => normalizeViewState());
+
+  // Zoom to ground station on mount
+  useEffect(() => {
+    setViewState((prev) => ({
+      ...prev,
+      longitude: gsLocation.lon,
+      latitude: gsLocation.lat,
+      zoom: 12, // Good zoom level for ground station
+    }));
+  }, [gsLocation]);
 
   const handleAccept = async (requestId, e) => {
     e?.stopPropagation();
@@ -484,7 +1042,9 @@ export default function LiveRequests() {
   );
 
   const handleMapMove = useCallback((event) => {
-    const next = normalizeViewState(event?.viewState);
+    // Handle both DeckGL and MapLibreMap formats
+    const vs = event?.viewState || event;
+    const next = normalizeViewState(vs);
     setViewState((prev) => (hasViewStateChanged(prev, next) ? next : prev));
   }, []);
 
@@ -503,7 +1063,7 @@ export default function LiveRequests() {
     [focusOnRequest]
   );
 
-  // Filter active requests
+  // Filter active requests (for sidebar list)
   const activeRequests = useMemo(() => {
     let filtered = requests.filter(
       (r) => r.status !== "Delivered" && r.status !== "UserConfirmed"
@@ -517,14 +1077,15 @@ export default function LiveRequests() {
           r.note?.toLowerCase().includes(query) ||
           r.id?.toString().includes(query) ||
           r.status?.toLowerCase().includes(query) ||
+          getRequestPriority(r).toLowerCase().includes(query) ||
           r.state?.toLowerCase().includes(query)
       );
     }
 
     if (filter === "urgent") {
-      filtered = filtered.filter((r) => r.status === "Urgent" || r.urgency === "Critical");
+      filtered = filtered.filter((r) => getRequestPriority(r) === "Urgent");
     } else if (filter === "pending") {
-      filtered = filtered.filter((r) => r.status === "Pending" || r.status === "Urgent");
+      filtered = filtered.filter((r) => r.status === "Pending");
     } else if (filter === "assigned") {
       filtered = filtered.filter((r) => r.status === "Assigned" || r.status === "In Transit");
     }
@@ -533,8 +1094,9 @@ export default function LiveRequests() {
   }, [requests, filter, search]);
 
   // Add distance and bearing
+  // Add distance and bearing (include all requests for map)
   const requestsWithDistance = useMemo(() => {
-    return activeRequests
+    return requests
       .map((req) => {
         const coords = getRequestCoordinates(req);
         if (!coords) {
@@ -548,7 +1110,22 @@ export default function LiveRequests() {
         return { ...req, lat: coords.lat, lon: coords.lon, distance, bearing, direction };
       })
       .sort((a, b) => (a.distance || 999) - (b.distance || 999));
-  }, [activeRequests, gsLocation]);
+  }, [requests, gsLocation]);
+
+  // Active requests with distance (for sidebar display)
+  const activeRequestsWithDistance = useMemo(() => {
+    const active = requestsWithDistance.filter(
+      (r) => r.status !== "Delivered" && r.status !== "UserConfirmed"
+    );
+
+    return active.sort((a, b) => {
+      const priorityDiff = getPriorityRank(a) - getPriorityRank(b);
+      if (priorityDiff !== 0) return priorityDiff;
+      const aDist = Number.isFinite(a.distance) ? a.distance : Number.POSITIVE_INFINITY;
+      const bDist = Number.isFinite(b.distance) ? b.distance : Number.POSITIVE_INFINITY;
+      return aDist - bDist;
+    });
+  }, [requestsWithDistance]);
 
   // Update selected request
   useEffect(() => {
@@ -684,6 +1261,25 @@ export default function LiveRequests() {
         })
       );
 
+      // Ground station label
+      markerLayers.push(
+        new TextLayer({
+          id: "gs-label",
+          data: [{
+            position: [gsLocation.lon, gsLocation.lat],
+            name: gsLocation.name
+          }],
+          getPosition: d => d.position,
+          getText: d => d.name,
+          getSize: 12,
+          getColor: [255, 255, 255, 255],
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "bottom",
+          getPixelOffset: [0, -30],
+          pickable: false,
+        })
+      );
+
       // Range circle
       markerLayers.push(
         new ScatterplotLayer({
@@ -736,6 +1332,22 @@ export default function LiveRequests() {
           pickable: true,
         })
       );
+
+      // Add text labels for requests
+      markerLayers.push(
+        new TextLayer({
+          id: "request-labels",
+          data: requestMarkers,
+          getPosition: d => d.position,
+          getText: d => `${d.data.resource}\n${d.data.distance?.toFixed(1) || '?'} km`,
+          getSize: 12,
+          getColor: [255, 255, 255, 255],
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "center",
+          getPixelOffset: [0, 0],
+          pickable: false,
+        })
+      );
     }
 
     // Connection path from ground station to selected request (road-based when available).
@@ -758,7 +1370,7 @@ export default function LiveRequests() {
           id: "connection-route-glow",
           data: [{ path: routePath }],
           getPath: (d) => d.path,
-          getColor: [0, 102, 204, 110],
+          getColor: [34, 197, 94, 110],
           getWidth: 9,
           widthMinPixels: 4,
           widthMaxPixels: 13,
@@ -773,7 +1385,7 @@ export default function LiveRequests() {
           id: "connection-route",
           data: [{ path: routePath }],
           getPath: (d) => d.path,
-          getColor: [217, 95, 58, 225],
+          getColor: [34, 197, 94, 255],
           getWidth: 4,
           widthMinPixels: 2,
           widthMaxPixels: 9,
@@ -783,29 +1395,77 @@ export default function LiveRequests() {
         })
       );
 
-      const labelPosition = routePath[Math.floor(routePath.length / 2)] || fallbackPath[0];
+      // Start and End point circles with glow for selected route
+      const endpointData = [
+        { position: [gsLocation.lon, gsLocation.lat], type: "start", distance: routeDistanceKm },
+        { position: [selectedRequest.lon, selectedRequest.lat], type: "end", distance: routeDistanceKm }
+      ];
 
+      // Glow effect
+      markerLayers.push(
+        new ScatterplotLayer({
+          id: "route-endpoints-glow",
+          data: endpointData,
+          getPosition: d => d.position,
+          getRadius: 20,
+          radiusUnits: 'pixels',
+          getFillColor: d => d.type === "start" ? [0, 153, 204, 60] : [52, 211, 153, 60],
+          pickable: false,
+        })
+      );
+
+      // Main circle
+      markerLayers.push(
+        new ScatterplotLayer({
+          id: "route-endpoints",
+          data: endpointData,
+          getPosition: d => d.position,
+          getRadius: 12,
+          radiusUnits: 'pixels',
+          getFillColor: d => d.type === "start" ? [0, 153, 204, 255] : [52, 211, 153, 255],
+          getLineColor: [255, 255, 255, 255],
+          getLineWidth: 3,
+          lineWidthUnits: 'pixels',
+          stroked: true,
+          pickable: false,
+        })
+      );
+
+      // Labels for endpoints
       markerLayers.push(
         new TextLayer({
-          id: "connection-distance-label",
-          data: [
-            {
-              position: labelPosition,
-              label: `${routeDistanceKm.toFixed(1)} km${hasRoadPath ? " • Road" : " • Direct"}`,
-            },
-          ],
-          getPosition: (d) => d.position,
-          getText: (d) => d.label,
-          getSize: 13,
-          sizeUnits: "pixels",
-          getColor: [15, 23, 42, 255],
-          background: true,
-          getBackgroundColor: [255, 255, 255, 235],
-          getBorderColor: [0, 102, 204, 180],
-          getBorderWidth: 1,
+          id: "endpoint-labels",
+          data: endpointData,
+          getPosition: d => d.position,
+          getText: d => d.type === "start" ? "GS" : "DST",
+          getSize: 11,
+          getColor: [255, 255, 255, 255],
           getTextAnchor: "middle",
           getAlignmentBaseline: "center",
-          billboard: true,
+          getPixelOffset: [0, 0],
+          fontWeight: 'bold',
+          pickable: false,
+        })
+      );
+
+      // Labels below endpoints
+      markerLayers.push(
+        new TextLayer({
+          id: "endpoint-distance-labels",
+          data: endpointData,
+          getPosition: d => d.position,
+          getText: d => `${d.type === "start" ? "START" : "END"} - ${d.distance.toFixed(1)}km`,
+          getSize: 12,
+          getColor: [15, 23, 42, 255],
+          getTextAnchor: "middle",
+          getAlignmentBaseline: "top",
+          getPixelOffset: [0, 18],
+          fontWeight: 'bold',
+          background: true,
+          getBorderColor: [255, 255, 255, 255],
+          getBorderWidth: 2,
+          backgroundPadding: [4, 2],
+          getBackgroundColor: [255, 255, 255, 220],
           pickable: false,
         })
       );
@@ -834,10 +1494,12 @@ export default function LiveRequests() {
     );
   }
 
+  const isModalOpen = detailsRequest !== null || showGSSettings;
+
   return (
     <div style={{ display: "flex", height: "100%", background: "var(--bg-primary)", overflow: "hidden" }}>
       {/* Left Panel */}
-      <div style={{ width: "420px", flexShrink: 0, display: "flex", flexDirection: "column", borderRight: "1px solid rgba(0, 102, 204, 0.1)", height: "100%", overflowY: "auto" }}>
+      <div style={{ width: "420px", flexShrink: 0, display: isModalOpen ? "none" : "flex", flexDirection: "column", borderRight: "1px solid rgba(0, 102, 204, 0.1)", height: "100%", overflowY: "auto" }}>
         <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.1)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
             <div style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #0066cc, #004a99)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -930,20 +1592,24 @@ export default function LiveRequests() {
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
-          {requestsWithDistance.length === 0 ? (
+          {activeRequestsWithDistance.length === 0 ? (
             <div style={{ padding: "48px 24px", textAlign: "center" }}>
               <Package size={48} style={{ margin: "0 auto 16px", opacity: 0.3, color: "var(--text-muted)" }} />
               <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No active requests</p>
             </div>
           ) : (
-            requestsWithDistance.map((req, idx) => {
+            activeRequestsWithDistance.map((req, idx) => {
               const statusColor = statusColors[req.status] || [108, 125, 141];
               const statusColorHex = `rgb(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]})`;
 
               return (
                 <div
                   key={req.id}
-                  onClick={() => handleSelectRequest(req)}
+                  onClick={() => {
+                    if (!selectedRequest) {
+                      handleSelectRequest(req);
+                    }
+                  }}
                   style={{
                     padding: "16px",
                     marginBottom: "12px",
@@ -995,21 +1661,61 @@ export default function LiveRequests() {
                         <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>ID: #{req.id?.toString().slice(-6).toUpperCase()}</div>
                       </div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                        background: statusColorHex,
-                        color: "#ffffff",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      {req.status}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailsRequest(req);
+                        }}
+                        style={{
+                          background: "rgba(0, 102, 204, 0.1)",
+                          border: "1px solid rgba(0, 102, 204, 0.2)",
+                          borderRadius: "6px",
+                          padding: "6px 8px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "all 0.2s ease",
+                        }}
+                        title="View details"
+                      >
+                        <AlertCircle size={14} color="#0066cc" />
+                      </button>
+                      {(() => {
+                        const urg = getRequestPriority(req);
+                        const cfg = priorityConfig[urg] || priorityConfig.Normal;
+                        return (
+                          <span style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "4px 8px",
+                            background: cfg.bg,
+                            color: cfg.color,
+                            border: `1px solid ${cfg.border}`,
+                            borderRadius: "6px",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {urg}
+                          </span>
+                        );
+                      })()}
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "5px 10px",
+                          background: statusColorHex,
+                          color: "#ffffff",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
                   </div>
 
-                  {req.distance !== null && (
+                  {selectedRequest?.id === req.id && selectedRouteDistanceKm !== null ? null : req.distance !== null && (
                     <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0, 102, 204, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
                         <Navigation size={16} color="#0066cc" />
@@ -1034,12 +1740,12 @@ export default function LiveRequests() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "var(--text-muted)", marginLeft: "12px" }}>
                       <Clock size={12} />
-                      {new Date(req.timestamp || req.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                      {getElapsedTime(req.timestamp || req.created_at)}
                     </div>
                   </div>
 
                   <div style={{ display: "flex", gap: "8px" }}>
-                    {(req.status === "Pending" || req.status === "Urgent") && (
+                    {req.status === "Pending" && (
                       <button
                         onClick={(e) => handleAccept(req.id, e)}
                         disabled={processingId === req.id}
@@ -1172,7 +1878,7 @@ export default function LiveRequests() {
       </div>
 
       {/* Right Panel - Map */}
-      <div style={{ flex: 1, position: "relative", height: "100%" }}>
+      <div style={{ flex: 1, position: "relative", height: "100%", filter: isModalOpen ? "blur(5px)" : "none" }}>
         {isSelectingOnMap && (
           <div style={{
             position: "absolute",
@@ -1210,7 +1916,8 @@ export default function LiveRequests() {
 
         <DeckGL
           viewState={viewState}
-          controller={false}
+          onViewStateChange={({ viewState: vs }) => handleMapMove({ viewState: vs })}
+          controller={true}
           layers={layers}
           onClick={(info) => {
             if (isSelectingOnMap) {
@@ -1223,17 +1930,7 @@ export default function LiveRequests() {
           <MapLibreMap
             mapLib={maplibregl}
             mapStyle={OSM_RASTER_STYLE}
-            viewState={viewState}
-            onMove={handleMapMove}
             attributionControl={true}
-            dragPan={true}
-            dragRotate={false}
-            doubleClickZoom={true}
-            scrollZoom={true}
-            boxZoom={true}
-            touchZoom={true}
-            touchPitch={false}
-            pitchWithRotate={false}
             style={{ width: "100%", height: "100%" }}
           />
         </DeckGL>
@@ -1304,7 +2001,7 @@ export default function LiveRequests() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "16px", height: "4px", background: "#d95f3a", borderRadius: "999px" }} />
+              <div style={{ width: "16px", height: "4px", background: "#22c55e", borderRadius: "999px" }} />
               <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Road Route</span>
             </div>
             {[
@@ -1322,68 +2019,77 @@ export default function LiveRequests() {
           </div>
         </div>
 
-        {/* Stats Overlay */}
+        {/* Zoom Controls */}
         <div style={{
           position: "absolute",
           bottom: "16px",
-          left: "16px",
           right: "16px",
           display: "flex",
-          gap: "12px",
+          flexDirection: "column",
+          gap: "8px",
           zIndex: 1000,
         }}>
-          {[
-            { label: "Total Active", value: activeRequests.length, Icon: MapPin, color: "#0066cc" },
-            { label: "Urgent", value: activeRequests.filter(r => r.status === "Urgent" || r.urgency === "Critical").length, Icon: AlertCircle, color: "#d94a3f" },
-            { label: "Nearest", value: requestsWithDistance[0]?.distance ? `${requestsWithDistance[0].distance.toFixed(1)} km` : "N/A", Icon: Ruler, color: "#0066cc" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                flex: 1,
-                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
-                border: "1px solid rgba(217, 95, 58, 0.3)",
-                borderRadius: "12px",
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "all 0.3s ease",
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)"
-              }}
-            >
-              <stat.Icon size={24} color={stat.color} />
-              <div>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{stat.label}</div>
-                <div style={{ fontSize: "20px", fontWeight: 900, color: stat.color }}>{stat.value}</div>
-              </div>
-            </div>
-          ))}
-
           <button
-            title="Real-time updates active via Socket.IO"
+            onClick={() => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 20) }))}
             style={{
+              width: "44px",
+              height: "44px",
               background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
-              border: "1px solid rgba(47, 158, 115, 0.4)",
-              borderRadius: "12px",
-              padding: "12px 16px",
+              border: "1px solid rgba(0, 102, 204, 0.3)",
+              borderRadius: "8px",
+              cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
-              cursor: "default",
-              color: "#2f9e73",
+              justifyContent: "center",
+              fontSize: "20px",
               fontWeight: 700,
-              fontSize: "11px",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              animation: "pulse 2s infinite",
-              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)"
+              color: "#0066cc",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1))";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 102, 204, 0.2)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
             }}
           >
-            <RefreshCw size={16} style={{ animation: "spin 3s linear infinite" }} />
-            Live
+            +
+          </button>
+          <button
+            onClick={() => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 1) }))}
+            style={{
+              width: "44px",
+              height: "44px",
+              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
+              border: "1px solid rgba(0, 102, 204, 0.3)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "24px",
+              fontWeight: 700,
+              color: "#0066cc",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1))";
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 102, 204, 0.2)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))";
+              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+            }}
+          >
+            −
           </button>
         </div>
+
+        {/* Stats Overlay - Removed */}
       </div>
 
       {/* Ground Station Settings Modal */}
@@ -1394,329 +2100,13 @@ export default function LiveRequests() {
         setGsLocation={setGsLocation}
       />
 
-      {/* Selected Request Detail Panel */}
-      {selectedRequest && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            width: "420px",
-            height: "100vh",
-            background: "#f5f7fa",
-            borderLeft: "1px solid rgba(0, 102, 204, 0.2)",
-            zIndex: 1500,
-            display: "flex",
-            flexDirection: "column",
-            animation: "slideInRight 0.3s ease-out",
-            boxShadow: "-10px 0 30px rgba(0, 0, 0, 0.1)"
-          }}
-        >
-          {/* Header */}
-          <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.2)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flex: 1 }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  background: `linear-gradient(135deg, rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}), rgb(${Math.max(0, statusColors[selectedRequest.status][0]-40)}, ${Math.max(0, statusColors[selectedRequest.status][1]-40)}, ${Math.max(0, statusColors[selectedRequest.status][2]-40)}))`,
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: `0 4px 12px rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`
-                }}>
-                {selectedRequest.resource === "Food" ? (
-                  <Utensils size={28} color="white" />
-                ) : selectedRequest.resource === "Medical" ? (
-                  <Pill size={28} color="white" />
-                ) : selectedRequest.resource === "Shelter" ? (
-                  <Tent size={28} color="white" />
-                ) : (
-                  <Package size={28} color="white" />
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "4px" }}>{selectedRequest.resource}</h2>
-                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>Request #{selectedRequest.id?.toString().slice(-6).toUpperCase()}</p>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Clock size={12} />
-                  {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setSelectedRequest(null)}
-              style={{
-                background: "rgba(217, 74, 63, 0.15)",
-                border: "1px solid rgba(217, 74, 63, 0.3)",
-                borderRadius: "8px",
-                padding: "8px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(217, 74, 63, 0.25)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(217, 74, 63, 0.15)";
-              }}
-            >
-              <X size={20} color="#d94a3f" />
-            </button>
-          </div>
-
-          {/* Status Badge */}
-          <div style={{ padding: "0 24px", marginTop: "12px" }}>
-            <div style={{ display: "inline-block", padding: "6px 14px", background: `rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`, border: `1px solid rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.3)`, borderRadius: "8px", fontSize: "11px", fontWeight: 700, color: `rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]})` }}>
-              {selectedRequest.status}
-            </div>
-          </div>
-
-          {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-            {/* Delivery Progress */}
-            <div style={{ marginBottom: "28px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Delivery Progress
-              </label>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                {["Pending", "Assigned", "In Transit", "Delivered"].map((stage, idx) => {
-                  const currentIdx = ["Pending", "Assigned", "In Transit", "Delivered"].indexOf(selectedRequest.status);
-                  const isActive = idx <= currentIdx;
-                  const isCurrent = selectedRequest.status === stage;
-                  const stageIcons = [Satellite, Target, Helicopter, CheckCircle];
-                  const StageIcon = stageIcons[idx];
-
-                  return (
-                    <div key={stage} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          background: `linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04))`,
-                          border: isCurrent ? "3px solid rgba(217, 95, 58, 0.5)" : "2px solid transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: isCurrent ? "0 0 16px rgba(217, 95, 58, 0.25)" : "none",
-                          transition: "all 0.3s ease",
-                        }}
-                      >
-                        <StageIcon size={18} color={isActive ? "white" : "var(--text-muted)"} />
-                      </div>
-                      <span style={{ fontSize: "10px", color: isActive ? "var(--text-primary)" : "var(--text-muted)", marginTop: "8px", fontWeight: isCurrent ? 700 : 500, textAlign: "center" }}>
-                        {stage}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Distance & Bearing */}
-            {selectedRequest.distance && (
-              <div style={{ marginBottom: "28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
-                  <Navigation size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.distance.toFixed(1)}</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Kilometers</div>
-                </div>
-                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
-                  <MapPin size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.bearing}°</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Bearing {selectedRequest.direction}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Request Details Sections */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Details
-              </label>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {selectedRequest.state && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                    <MapPin size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>State</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.state}</div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedRequest.people_affected && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(220, 38, 38, 0.25)", borderRadius: "10px" }}>
-                    <User size={18} color="#dc2626" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>People Affected</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.people_affected}</div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedRequest.disaster_type && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(217, 164, 65, 0.3)", borderRadius: "10px" }}>
-                    <AlertTriangle size={18} color="#d9a441" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Disaster Type</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.disaster_type}</div>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                  <Clock size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Requested At</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>
-                      {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleString("en-IN")}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedRequest.note && (
-                  <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Note</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.6" }}>{selectedRequest.note}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* GPS Coordinates */}
-            {selectedRequest.lat && selectedRequest.lon && (
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                  GPS Coordinates
-                </label>
-                <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(47, 158, 115, 0.3)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <code style={{ fontSize: "12px", color: "#2f9e73", fontFamily: "monospace", fontWeight: 600 }}>
-                    {selectedRequest.lat.toFixed(6)}, {selectedRequest.lon.toFixed(6)}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${selectedRequest.lat}, ${selectedRequest.lon}`);
-                      toast.success("Coordinates copied!", { icon: "📋" });
-                    }}
-                    style={{
-                      background: "rgba(47, 158, 115, 0.15)",
-                      border: "1px solid rgba(47, 158, 115, 0.4)",
-                      borderRadius: "6px",
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#2f9e73",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.2)";
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ padding: "24px", borderTop: "1px solid rgba(0, 102, 204, 0.15)", display: "flex", gap: "12px", background: "#ffffff" }}>
-            {(selectedRequest.status === "Pending" || selectedRequest.status === "Urgent") && (
-              <button
-                onClick={(e) => handleAccept(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)",
-                }}
-              >
-                <CheckCircle size={18} />
-                Accept & Assign Drone
-              </button>
-            )}
-
-            {selectedRequest.status === "Assigned" && (
-              <button
-                onClick={(e) => handleInTransit(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
-                }}
-              >
-                <Send size={18} />
-                Launch Drone
-              </button>
-            )}
-
-            {selectedRequest.status === "In Transit" && (
-              <button
-                onClick={(e) => handleDelivered(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
-                }}
-              >
-                <Truck size={18} />
-                Confirm Delivery
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Request Details Modal */}
+      <RequestDetailsModal
+        isOpen={detailsRequest !== null}
+        onClose={() => setDetailsRequest(null)}
+        request={detailsRequest}
+        gsLocation={gsLocation}
+      />
 
       <style>{`
         @keyframes spin {

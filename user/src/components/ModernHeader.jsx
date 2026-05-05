@@ -31,8 +31,7 @@ const styles = StyleSheet.create({
   },
   headerInner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: THEME.spacing.lg,
     paddingBottom: THEME.spacing.lg,
     paddingTop: THEME.spacing.lg,
@@ -40,6 +39,7 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
+    marginLeft: THEME.spacing.md,
   },
   headerSubtitle: {
     fontSize: THEME.typography.size.xs,
@@ -147,21 +147,21 @@ export function ModernHeader(props) {
           { opacity: titleOpacity },
         ]}
       >
+        {onBackPress && (
+          <GlassButton
+            icon="chevron-back"
+            onPress={onBackPress}
+            style={styles.backButton}
+            testID="header-back-button"
+          />
+        )}
+
         <View style={styles.headerContent}>
           {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
           <Text style={styles.headerTitle}>{title}</Text>
         </View>
 
         <View style={styles.headerActions}>
-          {onBackPress && (
-            <GlassButton
-              icon="chevron-back"
-              onPress={onBackPress}
-              style={styles.backButton}
-              testID="header-back-button"
-            />
-          )}
-
           {actions &&
             actions.map((action, idx) => (
               <GlassButton
