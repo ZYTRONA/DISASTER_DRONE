@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { registerRootComponent } from 'expo';
 import {
   ActivityIndicator,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 import { AppProvider } from './src/context/AppContext';
@@ -33,8 +34,30 @@ const Stack = createStackNavigator();
 function LoadingScreen() {
   return (
     <View style={styles.centeredScreen}>
-      <ActivityIndicator size="large" color="#2563eb" />
-      <Text style={styles.loadingText}>Starting NDRF Mobile...</Text>
+      <View style={styles.logoRow}>
+        <View style={styles.logoIcon}>
+          <Text style={styles.logoIconText}>Z</Text>
+        </View>
+        <Text style={styles.logoText}>zydro</Text>
+      </View>
+      <ActivityIndicator size="large" color="#0066cc" style={{ marginTop: 32 }} />
+    </View>
+  );
+}
+
+function ZydroHeader() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[
+      styles.appHeader,
+      { paddingTop: insets.top + 10 }
+    ]}>
+      <View style={styles.logoRow}>
+        <View style={styles.logoIcon}>
+          <Text style={styles.logoIconText}>Z</Text>
+        </View>
+        <Text style={styles.logoText}>zydro</Text>
+      </View>
     </View>
   );
 }
@@ -44,7 +67,8 @@ function AppNavigator() {
     <Stack.Navigator
       initialRouteName="Category"
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        header: () => <ZydroHeader />,
         cardStyle: { backgroundColor: '#ffffff' },
       }}
     >
@@ -176,6 +200,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
+  },
+  appHeader: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,102,204,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#0066cc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoIconText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0066cc',
+    letterSpacing: 0.5,
   },
   loadingText: {
     marginTop: 12,

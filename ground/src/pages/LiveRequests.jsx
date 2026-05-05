@@ -1352,234 +1352,117 @@ export default function LiveRequests() {
               const statusColorHex = `rgb(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]})`;
               const priority = getRequestPriority(req);
               const priorityStyle = getPriorityStyle(priority);
+              const isSelected = selectedRequest?.id === req.id;
+              const isProcessing = processingId === req.id;
+
+              const Spinner = () => (
+                <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+              );
+
+              const ActionBtn = ({ onClick, color, icon: Icon, label }) => (
+                <button
+                  onClick={onClick}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1, padding: "9px 12px", background: color, border: "none",
+                    borderRadius: "8px", color: "#fff", fontSize: "12px", fontWeight: 700,
+                    cursor: isProcessing ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                    opacity: isProcessing ? 0.6 : 1, transition: "all 0.2s",
+                    boxShadow: `0 2px 8px ${color}44`,
+                  }}
+                >
+                  {isProcessing ? <Spinner /> : <Icon size={13} />}
+                  {label}
+                </button>
+              );
 
               return (
                 <div
                   key={req.id}
                   onClick={() => handleSelectRequest(req)}
                   style={{
-                    padding: "16px",
-                    marginBottom: "12px",
-                    background: selectedRequest?.id === req.id
-                      ? "linear-gradient(135deg, rgba(0, 102, 204, 0.15), rgba(0, 102, 204, 0.08))"
-                      : "linear-gradient(135deg, rgba(217, 95, 58, 0.06), rgba(0, 102, 204, 0.02))",
-                    border: `1px solid ${selectedRequest?.id === req.id ? "rgba(217, 95, 58, 0.4)" : "rgba(0, 102, 204, 0.1)"}`,
-                    borderRadius: "12px",
+                    marginBottom: "10px",
+                    background: isSelected ? "#f0f6ff" : "#ffffff",
+                    border: `1.5px solid ${isSelected ? "#0066cc" : "rgba(0,0,0,0.07)"}`,
+                    borderRadius: "14px",
                     cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    animation: idx < 3 ? `fadeInUp 0.5s ease-out backwards ${idx * 0.1}s` : "none",
+                    transition: "all 0.2s",
+                    overflow: "hidden",
+                    boxShadow: isSelected ? "0 4px 16px rgba(0,102,204,0.12)" : "0 1px 4px rgba(0,0,0,0.05)",
                   }}
-                  onMouseEnter={(e) => {
-                    if (selectedRequest?.id !== req.id) {
-                      e.currentTarget.style.borderColor = "rgba(217, 95, 58, 0.3)";
-                      e.currentTarget.style.transform = "translateX(4px)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedRequest?.id !== req.id) {
-                      e.currentTarget.style.borderColor = "rgba(0, 102, 204, 0.1)";
-                      e.currentTarget.style.transform = "translateX(0)";
-                    }
-                  }}
+                  onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.borderColor = "rgba(0,102,204,0.3)"; }}
+                  onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.borderColor = "rgba(0,0,0,0.07)"; }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <div style={{
-                        width: "40px",
-                        height: "40px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "rgba(0, 102, 204, 0.15)",
-                        borderRadius: "8px",
-                      }}>
-                        {req.resource === "Food" ? (
-                          <Utensils size={20} color="#0066cc" />
-                        ) : req.resource === "Medical" ? (
-                          <Pill size={20} color="#0066cc" />
-                        ) : req.resource === "Shelter" ? (
-                          <Tent size={20} color="#0066cc" />
-                        ) : (
-                          <Package size={20} color="#0066cc" />
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: "14px", color: "var(--text-primary)" }}>{req.resource}</div>
-                        <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>ID: #{req.id?.toString().slice(-6).toUpperCase()}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          padding: "5px 10px",
-                          background: statusColorHex,
-                          color: "#ffffff",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {req.status}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 800,
-                          padding: "5px 10px",
-                          background: priorityStyle.background,
-                          color: priorityStyle.color,
-                          border: `1px solid ${priorityStyle.border}`,
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {priority} Priority
-                      </span>
-                    </div>
-                  </div>
+                  {/* Priority stripe */}
+                  <div style={{ height: 3, background: priorityStyle.color, borderRadius: "14px 14px 0 0" }} />
 
-                  {req.distance !== null && (
-                    <div style={{ display: "flex", gap: "16px", marginBottom: "12px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0, 102, 204, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
-                        <Navigation size={16} color="#0066cc" />
-                        <div>
-                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#0066cc" }}>{req.distance.toFixed(1)} km</div>
-                          <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>Distance</div>
+                  <div style={{ padding: "14px" }}>
+                    {/* Row 1: Icon + Title + Badges */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(0,102,204,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {req.resource === "Food" ? <Utensils size={18} color="#0066cc" />
+                          : req.resource === "Medical" ? <Pill size={18} color="#0066cc" />
+                          : req.resource === "Shelter" ? <Tent size={18} color="#0066cc" />
+                          : <Package size={18} color="#0066cc" />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: "var(--text-primary)", marginBottom: 2 }}>{req.resource}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)" }}>#{req.id?.toString().slice(-6).toUpperCase()}</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", background: statusColorHex, color: "#fff", borderRadius: 5 }}>{req.status}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", background: priorityStyle.background, color: priorityStyle.color, border: `1px solid ${priorityStyle.border}`, borderRadius: 5 }}>{priority}</span>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Distance + Bearing */}
+                    {req.distance !== null && (
+                      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,102,204,0.06)", padding: "7px 10px", borderRadius: 8 }}>
+                          <Navigation size={13} color="#0066cc" />
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#0066cc" }}>{req.distance.toFixed(1)} km</span>
+                          <span style={{ fontSize: 9, color: "var(--text-muted)", marginLeft: 2 }}>away</span>
+                        </div>
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,102,204,0.06)", padding: "7px 10px", borderRadius: 8 }}>
+                          <MapPin size={13} color="#0066cc" />
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#0066cc" }}>{req.bearing}°</span>
+                          <span style={{ fontSize: 9, color: "var(--text-muted)", marginLeft: 2 }}>{req.direction}</span>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(0, 102, 204, 0.1)", padding: "8px 12px", borderRadius: "8px", flex: 1 }}>
-                        <MapPin size={16} color="#0066cc" />
-                        <div>
-                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#0066cc" }}>{req.bearing}° {req.direction}</div>
-                          <div style={{ fontSize: "9px", color: "var(--text-muted)" }}>Bearing</div>
-                        </div>
+                    )}
+
+                    {/* Row 3: Note + Time */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                      <div style={{ flex: 1, fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {req.note || "No notes"}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
+                        <Clock size={11} />
+                        {new Date(req.timestamp || req.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
-                  )}
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {req.note || "No additional notes"}
+                    {/* Row 4: Action buttons */}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={(e) => handleShowRequestDetails(req, e)}
+                        title="Details"
+                        style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(0,102,204,0.08)", border: "1px solid rgba(0,102,204,0.2)", color: "#0066cc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                      >
+                        <Info size={14} />
+                      </button>
+
+                      {(req.status === "Pending" || req.status === "Urgent") && (
+                        <ActionBtn onClick={(e) => handleAccept(req.id, e)} color="#0066cc" icon={CheckCircle} label="Accept & Assign" />
+                      )}
+                      {req.status === "Assigned" && (
+                        <ActionBtn onClick={(e) => handleInTransit(req.id, e)} color="#0284c7" icon={Send} label="Launch Drone" />
+                      )}
+                      {req.status === "In Transit" && (
+                        <ActionBtn onClick={(e) => handleDelivered(req.id, e)} color="#16a34a" icon={Truck} label="Confirm Delivery" />
+                      )}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "var(--text-muted)", marginLeft: "12px" }}>
-                      <Clock size={12} />
-                      {new Date(req.timestamp || req.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={(e) => handleShowRequestDetails(req, e)}
-                      title="View request details"
-                      style={{
-                        width: "40px",
-                        padding: "10px",
-                        background: "rgba(0, 102, 204, 0.1)",
-                        border: "1px solid rgba(0, 102, 204, 0.25)",
-                        borderRadius: "8px",
-                        color: "#0066cc",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <Info size={15} />
-                    </button>
-
-                    {(req.status === "Pending" || req.status === "Urgent") && (
-                      <button
-                        onClick={(e) => handleAccept(req.id, e)}
-                        disabled={processingId === req.id}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          background: "#0066cc",
-                          border: "none",
-                          borderRadius: "8px",
-                          color: "#ffffff",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          cursor: processingId === req.id ? "not-allowed" : "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          opacity: processingId === req.id ? 0.6 : 1,
-                          transition: "all 0.2s ease",
-                          boxShadow: "0 2px 8px rgba(0, 102, 204, 0.25)",
-                        }}
-                      >
-                        {processingId === req.id ? (
-                          <div style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-                        ) : (
-                          <CheckCircle size={14} />
-                        )}
-                        Accept & Assign Drone
-                      </button>
-                    )}
-
-                    {req.status === "Assigned" && (
-                      <button
-                        onClick={(e) => handleInTransit(req.id, e)}
-                        disabled={processingId === req.id}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          background: "linear-gradient(135deg, #0066cc, #c8653d)",
-                          border: "none",
-                          borderRadius: "8px",
-                          color: "#ffffff",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          cursor: processingId === req.id ? "not-allowed" : "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          opacity: processingId === req.id ? 0.6 : 1,
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        {processingId === req.id ? (
-                          <div style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-                        ) : (
-                          <Send size={14} />
-                        )}
-                        Launch Drone
-                      </button>
-                    )}
-
-                    {req.status === "In Transit" && (
-                      <button
-                        onClick={(e) => handleDelivered(req.id, e)}
-                        disabled={processingId === req.id}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          background: "linear-gradient(135deg, #0066cc, #0066cc)",
-                          border: "none",
-                          borderRadius: "8px",
-                          color: "#ffffff",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          cursor: processingId === req.id ? "not-allowed" : "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          opacity: processingId === req.id ? 0.6 : 1,
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        {processingId === req.id ? (
-                          <div style={{ width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-                        ) : (
-                          <Truck size={14} />
-                        )}
-                        Confirm Delivery
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -1587,7 +1470,7 @@ export default function LiveRequests() {
           )}
         </div>
 
-        <div style={{ padding: "16px", borderTop: "1px solid rgba(0, 102, 204, 0.1)", background: "rgba(217, 95, 58, 0.03)" }}>
+        <div style={{ padding: "16px", borderTop: "1px solid rgba(0, 102, 204, 0.1)", background: "#fafbff" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg, #0066cc, #0066cc)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Building2 size={20} color="white" />

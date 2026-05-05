@@ -178,7 +178,7 @@ export default function OrderDetailScreen({ navigation, route }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={22} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Track Order</Text>
         <View style={styles.placeholder} />
@@ -279,8 +279,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f5f7fa',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -94,7 +94,7 @@ socketio = SocketIO(
     cors_allowed_origins=Config.CORS_ORIGINS,
     ping_timeout=60,
     ping_interval=25,
-    async_mode='eventlet',
+    async_mode='threading',
     logger=False,
     engineio_logger=False,
 )
@@ -985,4 +985,5 @@ if __name__ == '__main__':
         port=Config.FLASK_PORT,
         debug=Config.DEBUG,
         use_reloader=use_reloader,
+        allow_unsafe_werkzeug=True,
     )

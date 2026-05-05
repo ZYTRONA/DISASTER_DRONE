@@ -309,7 +309,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
               onPress={() => navigation.goBack()}
               style={styles.backButton}
             >
-              <Ionicons name="chevron-back" size={24} color={Colors.primary} />
+              <Ionicons name="chevron-back" size={22} color={Colors.primary} />
             </TouchableOpacity>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Select Items</Text>
@@ -533,8 +533,14 @@ const styles = {
     gap: 12,
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f5f7fa',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerContent: {
     flex: 1,

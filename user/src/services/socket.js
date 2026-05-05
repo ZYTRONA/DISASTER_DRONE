@@ -23,11 +23,7 @@ const SOCKET_TRANSPORT_MODE = (
   process.env.EXPO_PUBLIC_SOCKET_TRANSPORT || 'polling'
 ).toLowerCase();
 
-const resolveTransports = () => {
-  if (SOCKET_TRANSPORT_MODE === 'websocket') return ['websocket'];
-  if (SOCKET_TRANSPORT_MODE === 'both') return ['websocket', 'polling'];
-  return ['polling'];
-};
+const resolveTransports = () => ['polling'];
 
 const logConnectError = (error, backendUrl) => {
   const now = Date.now();
@@ -49,14 +45,14 @@ const createSocket = (backendUrl) => {
   const transports = resolveTransports();
 
   const client = io(backendUrl, {
-    transports,
+    transports: ['polling'],
     autoConnect: true,
     reconnection: true,
-    reconnectionDelay: 1000,
+    reconnectionDelay: 2000,
     reconnectionDelayMax: 10000,
-    reconnectionAttempts: 10,
-    randomizationFactor: 0.5,
-    timeout: 8000,
+    reconnectionAttempts: Infinity,
+    timeout: 20000,
+    forceNew: false,
   });
 
   client.on('connect', () => {

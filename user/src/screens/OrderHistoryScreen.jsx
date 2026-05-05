@@ -117,7 +117,7 @@ export default function OrderHistoryScreen({ navigation }) {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={22} color="#0066ff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order History</Text>
         <View style={styles.placeholder} />

@@ -13,16 +13,30 @@ export default function Sidebar({ activeView, setActiveView, connected, isCollap
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo">
-          <Radio size={24} />
-          {!isCollapsed && <span>NDRF GCS</span>}
+          <div style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: '#0066cc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,102,204,0.3)' }}>
+            <span style={{ color: '#fff', fontWeight: 900, fontSize: 18, lineHeight: 1 }}>Z</span>
+          </div>
+          {!isCollapsed && <span>zydro</span>}
         </div>
-        <button
-          className="sidebar-toggle"
-          onClick={onToggleCollapse}
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {isCollapsed ? <Menu size={20} /> : <X size={20} />}
-        </button>
+        {!isCollapsed && (
+          <button
+            className="sidebar-toggle"
+            onClick={onToggleCollapse}
+            title="Collapse Sidebar"
+          >
+            <X size={20} />
+          </button>
+        )}
+        {isCollapsed && (
+          <button
+            className="sidebar-toggle"
+            onClick={onToggleCollapse}
+            title="Expand Sidebar"
+            style={{ marginTop: 8 }}
+          >
+            <Menu size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">
