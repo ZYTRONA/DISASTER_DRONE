@@ -12,6 +12,17 @@ export const AppContext = React.createContext();
 
 const THEME_MODE_KEY = 'ndrf_theme_mode';
 
+const normalizeUrgency = (urgency) => {
+  const normalized = String(urgency || '').trim().toLowerCase();
+  const urgencyMap = {
+    critical: 'Critical',
+    high: 'High',
+    urgent: 'Urgent',
+    normal: 'Normal',
+  };
+  return urgencyMap[normalized] || 'Normal';
+};
+
 export function AppProvider({ children }) {
   // Category & Cart
   const [category, setCategory] = useState(null);
@@ -152,6 +163,7 @@ export function AppProvider({ children }) {
     try {
       setLoading(true);
       const { resource, urgency, name, people, location, notes } = requestData;
+      const selectedUrgency = normalizeUrgency(urgency);
       
       // Transform request data to API format
       const payload = {
@@ -163,6 +175,8 @@ export function AppProvider({ children }) {
         note: `${name} requested ${resource} for ${people} people${notes ? ': ' + notes : ''}`,
         lat: location?.lat || 0,
         lon: location?.lon || 0,
+        urgency: selectedUrgency,
+        priority: selectedUrgency,
       };
 
       console.log('📤 Submitting request:', payload);

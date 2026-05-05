@@ -4,7 +4,7 @@ import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { Map as MapLibreMap } from "react-map-gl/maplibre";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapPin, Navigation, Package, Clock, AlertTriangle, Radio, Filter, Zap, Settings, X, Crosshair, Save, Search, CheckCircle, Truck, Send, User, Phone, Utensils, Pill, Tent, Satellite, Target, Helicopter, AlertCircle, Hourglass, Plane, Ruler, RefreshCw, Building2 } from "lucide-react";
+import { MapPin, Navigation, Package, Clock, AlertTriangle, Radio, Filter, Zap, Settings, X, Crosshair, Save, Search, CheckCircle, Truck, Send, Utensils, Pill, Tent, Helicopter, Hourglass, Plane, Building2, Plus, Minus, Info } from "lucide-react";
 import { useRequests } from "../context/RequestsContext";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 const INDIA_BOUNDS = [68.2, 8.4, 97.4, 35.6]; // [minLon, minLat, maxLon, maxLat]
 const INDIA_CENTER = [78.9629, 20.5937]; // [lon, lat]
 const INDIA_ZOOM = 5;
+const MAP_MIN_ZOOM = 3;
+const MAP_MAX_ZOOM = 18;
 
 // Default Ground Station Location
 const DEFAULT_GS = {
@@ -21,7 +23,7 @@ const DEFAULT_GS = {
 };
 
 // Preset Ground Station Locations
-const GS_PRESETS = [
+const POPULAR_INDIAN_LOCATIONS = [
   { name: "Coimbatore HQ", lat: 11.0168, lon: 76.9558 },
   { name: "Chennai Base", lat: 13.0827, lon: 80.2707 },
   { name: "Bangalore Center", lat: 12.9716, lon: 77.5946 },
@@ -29,6 +31,29 @@ const GS_PRESETS = [
   { name: "Delhi Command", lat: 28.6139, lon: 77.2090 },
   { name: "Kolkata Unit", lat: 22.5726, lon: 88.3639 },
 ];
+
+function formatIndianPlace(place) {
+  const address = place?.address || {};
+  const street =
+    address.road ||
+    address.pedestrian ||
+    address.footway ||
+    address.path ||
+    address.neighbourhood ||
+    address.suburb ||
+    address.quarter ||
+    place?.name;
+  const locality =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.city_district ||
+    address.county ||
+    address.state_district;
+  const parts = [street, locality, address.state, "India"].filter(Boolean);
+  return [...new Set(parts)].join(", ");
+}
 
 // Load saved GS location from localStorage
 function loadGSLocation() {
@@ -118,11 +143,33 @@ function getFocusZoom(distanceKm) {
   return 6;
 }
 
+const priorityStyles = {
+  Critical: { color: "#d94a3f", background: "rgba(217, 74, 63, 0.12)", border: "rgba(217, 74, 63, 0.3)" },
+  High: { color: "#c8653d", background: "rgba(200, 101, 61, 0.12)", border: "rgba(200, 101, 61, 0.3)" },
+  Urgent: { color: "#0066cc", background: "rgba(0, 102, 204, 0.12)", border: "rgba(0, 102, 204, 0.3)" },
+  Normal: { color: "#2f9e73", background: "rgba(47, 158, 115, 0.12)", border: "rgba(47, 158, 115, 0.3)" },
+};
+
+function getRequestPriority(request) {
+  const value = String(request?.priority || request?.urgency || "Urgent").trim().toLowerCase();
+  const priorityMap = {
+    critical: "Critical",
+    high: "High",
+    urgent: "Urgent",
+    normal: "Normal",
+  };
+  return priorityMap[value] || "Urgent";
+}
+
+function getPriorityStyle(priority) {
+  return priorityStyles[priority] || priorityStyles.Urgent;
+}
+
 function normalizeViewState(vs) {
   return {
     longitude: Number(vs?.longitude ?? INDIA_CENTER[0]),
     latitude: Number(vs?.latitude ?? INDIA_CENTER[1]),
-    zoom: Number(vs?.zoom ?? INDIA_ZOOM),
+    zoom: Math.max(MAP_MIN_ZOOM, Math.min(MAP_MAX_ZOOM, Number(vs?.zoom ?? INDIA_ZOOM))),
     pitch: Number(vs?.pitch ?? 0),
     bearing: Number(vs?.bearing ?? 0),
   };
@@ -176,6 +223,68 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
   const [customLat, setCustomLat] = useState(gsLocation.lat.toString());
   const [customLon, setCustomLon] = useState(gsLocation.lon.toString());
   const [customName, setCustomName] = useState(gsLocation.name);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationResults, setLocationResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const query = locationSearch.trim();
+    if (query.length < 2) {
+      setLocationResults([]);
+      setSearchLoading(false);
+      setSearchError("");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timerId = setTimeout(() => {
+      setSearchLoading(true);
+      setSearchError("");
+
+      const params = new URLSearchParams({
+        q: query,
+        format: "jsonv2",
+        addressdetails: "1",
+        countrycodes: "in",
+        limit: "10",
+      });
+
+      fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Search failed");
+          }
+          return res.json();
+        })
+        .then((places) => {
+          setLocationResults(Array.isArray(places) ? places : []);
+        })
+        .catch((err) => {
+          if (err.name !== "AbortError") {
+            setSearchError("Unable to search locations right now");
+            setLocationResults([]);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setSearchLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      clearTimeout(timerId);
+      controller.abort();
+    };
+  }, [isOpen, locationSearch]);
 
   if (!isOpen) return null;
 
@@ -194,10 +303,15 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
     onClose();
   };
 
-  const handlePresetSelect = (preset) => {
-    setCustomLat(preset.lat.toString());
-    setCustomLon(preset.lon.toString());
-    setCustomName(preset.name);
+  const handleLocationSelect = (location) => {
+    const lat = Number(location.lat);
+    const lon = Number(location.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    setCustomLat(lat.toString());
+    setCustomLon(lon.toString());
+    setCustomName(location.name || formatIndianPlace(location));
+    setLocationSearch(location.name || formatIndianPlace(location));
   };
 
   return (
@@ -222,8 +336,10 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
           background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))",
           border: "1px solid rgba(0, 102, 204, 0.2)",
           borderRadius: "20px",
-          maxWidth: "500px",
+          maxWidth: "640px",
           width: "100%",
+          maxHeight: "90vh",
+          overflow: "hidden",
           boxShadow: "0 30px 80px rgba(0, 0, 0, 0.15)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -243,16 +359,76 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
           </button>
         </div>
 
-        <div style={{ padding: "24px" }}>
+        <div style={{ padding: "24px", maxHeight: "calc(90vh - 98px)", overflowY: "auto" }}>
           <div style={{ marginBottom: "24px" }}>
             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Preset Locations
+              Search Indian Area
+            </label>
+            <div style={{ position: "relative", marginBottom: "12px" }}>
+              <Search size={18} color="#0066cc" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
+                placeholder="Search street, road, area, city, district, or state in India"
+                style={{
+                  width: "100%",
+                  padding: "13px 14px 13px 40px",
+                  background: "rgba(0, 102, 204, 0.08)",
+                  border: "1px solid rgba(0, 102, 204, 0.2)",
+                  borderRadius: "10px",
+                  color: "var(--text-primary)",
+                  fontSize: "13px",
+                  outline: "none",
+                  boxSizing: "border-box"
+                }}
+              />
+            </div>
+
+            {locationSearch.trim().length >= 2 && (
+              <div style={{ marginBottom: "14px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", overflow: "hidden" }}>
+                {searchLoading ? (
+                  <div style={{ padding: "14px", fontSize: "12px", color: "var(--text-muted)" }}>Searching India locations...</div>
+                ) : searchError ? (
+                  <div style={{ padding: "14px", fontSize: "12px", color: "#d94a3f" }}>{searchError}</div>
+                ) : locationResults.length === 0 ? (
+                  <div style={{ padding: "14px", fontSize: "12px", color: "var(--text-muted)" }}>No matching Indian locations found</div>
+                ) : (
+                  locationResults.map((place) => {
+                    const name = formatIndianPlace(place);
+                    return (
+                      <button
+                        key={place.place_id}
+                        onClick={() => handleLocationSelect({ ...place, name })}
+                        style={{
+                          width: "100%",
+                          padding: "12px 14px",
+                          background: customName === name ? "rgba(0, 102, 204, 0.12)" : "#ffffff",
+                          border: "none",
+                          borderBottom: "1px solid rgba(0, 102, 204, 0.08)",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-primary)" }}>{name}</div>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                          {Number(place.lat).toFixed(4)}°N, {Number(place.lon).toFixed(4)}°E
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              Popular Bases
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              {GS_PRESETS.map((preset) => (
+              {POPULAR_INDIAN_LOCATIONS.map((preset) => (
                 <button
                   key={preset.name}
-                  onClick={() => handlePresetSelect(preset)}
+                  onClick={() => handleLocationSelect(preset)}
                   style={{
                     padding: "12px",
                     background: customName === preset.name ? "linear-gradient(135deg, rgba(0, 102, 204, 0.15), rgba(0, 102, 204, 0.08))" : "rgba(0, 102, 204, 0.06)",
@@ -385,10 +561,218 @@ function GSSettingsModal({ isOpen, onClose, gsLocation, setGsLocation }) {
   );
 }
 
+function RequestDetailsModal({ request, onClose }) {
+  const [resolvedAddress, setResolvedAddress] = useState(null);
+  const [addressLoading, setAddressLoading] = useState(false);
+
+  useEffect(() => {
+    if (!request || !Number.isFinite(request.lat) || !Number.isFinite(request.lon)) {
+      setResolvedAddress(null);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      lat: String(request.lat),
+      lon: String(request.lon),
+      format: "jsonv2",
+      addressdetails: "1",
+    });
+
+    setAddressLoading(true);
+    fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Reverse geocode failed");
+        return res.json();
+      })
+      .then((place) => {
+        setResolvedAddress(place?.address || null);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setResolvedAddress(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setAddressLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [request?.id, request?.lat, request?.lon]);
+
+  if (!request) return null;
+
+  const priority = getRequestPriority(request);
+  const priorityStyle = getPriorityStyle(priority);
+  const statusColor = statusColors[request.status] || [108, 125, 141];
+  const areaName =
+    request.area_name ||
+    request.area ||
+    request.locality ||
+    request.neighbourhood ||
+    request.street ||
+    resolvedAddress?.road ||
+    resolvedAddress?.neighbourhood ||
+    resolvedAddress?.suburb ||
+    resolvedAddress?.quarter ||
+    resolvedAddress?.village ||
+    resolvedAddress?.town ||
+    resolvedAddress?.city ||
+    (addressLoading ? "Finding area..." : "Not available");
+  const districtName =
+    request.district ||
+    request.state_district ||
+    request.city_district ||
+    resolvedAddress?.state_district ||
+    resolvedAddress?.county ||
+    resolvedAddress?.city_district ||
+    (addressLoading ? "Finding district..." : "Not available");
+  const stateName =
+    request.state ||
+    resolvedAddress?.state ||
+    (addressLoading ? "Finding state..." : "Not available");
+  const cartItems = Array.isArray(request.cart)
+    ? request.cart
+    : Array.isArray(request.items)
+      ? request.items
+      : Array.isArray(request.cart?.items)
+        ? request.cart.items
+        : null;
+  const createdAt = request.timestamp || request.created_at;
+  const updatedAt = request.updated_at;
+
+  const detailRows = [
+    ["Request ID", request.ref_id || `#${request.id?.toString().slice(-6).toUpperCase()}`],
+    ["Resource", request.resource || "Relief"],
+    ["Status", request.status || "Pending"],
+    ["Priority", `${priority} Priority`],
+    ["People Affected", request.people_affected || request.people || "Not specified"],
+    ["State", stateName],
+    ["District", districtName],
+    ["Area Name", areaName],
+    ["Disaster Type", request.disaster_type || request.disaster || "Not specified"],
+    ["Distance", Number.isFinite(request.distance) ? `${request.distance.toFixed(1)} km` : "Not available"],
+    ["Bearing", request.bearing ? `${request.bearing}° ${request.direction || ""}` : "Not available"],
+    ["Coordinates", Number.isFinite(request.lat) && Number.isFinite(request.lon) ? `${request.lat.toFixed(6)}, ${request.lon.toFixed(6)}` : "Not available"],
+    ["Assigned Drone", request.assigned_drone_id || "Not assigned"],
+    ["Requested At", createdAt ? new Date(createdAt).toLocaleString("en-IN") : "Not available"],
+    ["Updated At", updatedAt ? new Date(updatedAt).toLocaleString("en-IN") : "Not available"],
+  ];
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.35)",
+        zIndex: 2200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "min(720px, 100%)",
+          maxHeight: "90vh",
+          background: "#ffffff",
+          border: "1px solid rgba(0, 102, 204, 0.18)",
+          borderRadius: "14px",
+          boxShadow: "0 30px 80px rgba(0, 0, 0, 0.2)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ padding: "20px 22px", borderBottom: "1px solid rgba(0, 102, 204, 0.12)", display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+            <div style={{ width: "48px", height: "48px", borderRadius: "10px", background: "rgba(0, 102, 204, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Info size={24} color="#0066cc" />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "var(--text-primary)" }}>{request.resource || "Request Details"}</h2>
+              <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11px", fontWeight: 800, padding: "6px 10px", background: `rgba(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]}, 0.12)`, color: `rgb(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]})`, borderRadius: "8px" }}>
+                  {request.status || "Pending"}
+                </span>
+                <span style={{ fontSize: "11px", fontWeight: 800, padding: "6px 10px", background: priorityStyle.background, color: priorityStyle.color, border: `1px solid ${priorityStyle.border}`, borderRadius: "8px" }}>
+                  {priority} Priority
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            title="Close details"
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "1px solid rgba(0, 102, 204, 0.18)",
+              borderRadius: "8px",
+              background: "rgba(0, 102, 204, 0.08)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <X size={18} color="#0066cc" />
+          </button>
+        </div>
+
+        <div style={{ padding: "22px", overflowY: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px", marginBottom: "18px" }}>
+            {detailRows.map(([label, value]) => (
+              <div key={label} style={{ padding: "12px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", background: "rgba(0, 102, 204, 0.04)" }}>
+                <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>{label}</div>
+                <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 700, wordBreak: "break-word" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: "18px" }}>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Note</div>
+            <div style={{ padding: "14px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", background: "#ffffff", color: "var(--text-primary)", fontSize: "13px", lineHeight: 1.6 }}>
+              {request.note || "No additional notes"}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Items / Cart</div>
+            {cartItems ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {cartItems.map((item, index) => (
+                  <div key={`${item.id || item.name || index}`} style={{ padding: "12px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)" }}>{item.name || item.id || `Item ${index + 1}`}</span>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>{item.quantity || item.qty || 1} {item.unit || ""}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <pre style={{ margin: 0, padding: "14px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", background: "rgba(0, 102, 204, 0.04)", color: "var(--text-primary)", fontSize: "12px", overflowX: "auto", whiteSpace: "pre-wrap" }}>
+                {JSON.stringify(request.cart || request.items || {}, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveRequests() {
   const { requests, loading, acceptRequest, setInTransit, markDelivered } = useRequests();
   const latestRequestIdRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [detailRequest, setDetailRequest] = useState(null);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [gsLocation, setGsLocation] = useState(loadGSLocation);
@@ -446,6 +830,11 @@ export default function LiveRequests() {
     setProcessingId(null);
   };
 
+  const handleShowRequestDetails = useCallback((request, e) => {
+    e?.stopPropagation();
+    setDetailRequest(request);
+  }, []);
+
   const handleMapClick = (info) => {
     if (isSelectingOnMap && info) {
       const { coordinate } = info;
@@ -488,6 +877,15 @@ export default function LiveRequests() {
     setViewState((prev) => (hasViewStateChanged(prev, next) ? next : prev));
   }, []);
 
+  const handleMapZoom = useCallback((delta) => {
+    setViewState((prev) =>
+      normalizeViewState({
+        ...prev,
+        zoom: prev.zoom + delta,
+      })
+    );
+  }, []);
+
   const handleSelectRequest = useCallback(
     (request) => {
       const coords = getRequestCoordinates(request);
@@ -517,14 +915,15 @@ export default function LiveRequests() {
           r.note?.toLowerCase().includes(query) ||
           r.id?.toString().includes(query) ||
           r.status?.toLowerCase().includes(query) ||
+          getRequestPriority(r).toLowerCase().includes(query) ||
           r.state?.toLowerCase().includes(query)
       );
     }
 
     if (filter === "urgent") {
-      filtered = filtered.filter((r) => r.status === "Urgent" || r.urgency === "Critical");
+      filtered = filtered.filter((r) => ["Critical", "High", "Urgent"].includes(getRequestPriority(r)));
     } else if (filter === "pending") {
-      filtered = filtered.filter((r) => r.status === "Pending" || r.status === "Urgent");
+      filtered = filtered.filter((r) => r.status === "Pending");
     } else if (filter === "assigned") {
       filtered = filtered.filter((r) => r.status === "Assigned" || r.status === "In Transit");
     }
@@ -561,6 +960,18 @@ export default function LiveRequests() {
       setSelectedRequest(null);
     }
   }, [requestsWithDistance, selectedRequest]);
+
+  // Keep the info modal synced with live socket updates.
+  useEffect(() => {
+    if (!detailRequest?.id) return;
+
+    const updated = requestsWithDistance.find((r) => r.id === detailRequest.id);
+    if (updated) {
+      setDetailRequest(updated);
+    } else {
+      setDetailRequest(null);
+    }
+  }, [requestsWithDistance, detailRequest?.id]);
 
   // Auto-focus the newest incoming request so GS -> user location is visible immediately.
   useEffect(() => {
@@ -939,6 +1350,8 @@ export default function LiveRequests() {
             requestsWithDistance.map((req, idx) => {
               const statusColor = statusColors[req.status] || [108, 125, 141];
               const statusColorHex = `rgb(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]})`;
+              const priority = getRequestPriority(req);
+              const priorityStyle = getPriorityStyle(priority);
 
               return (
                 <div
@@ -995,18 +1408,33 @@ export default function LiveRequests() {
                         <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>ID: #{req.id?.toString().slice(-6).toUpperCase()}</div>
                       </div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                        background: statusColorHex,
-                        color: "#ffffff",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      {req.status}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "5px 10px",
+                          background: statusColorHex,
+                          color: "#ffffff",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {req.status}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 800,
+                          padding: "5px 10px",
+                          background: priorityStyle.background,
+                          color: priorityStyle.color,
+                          border: `1px solid ${priorityStyle.border}`,
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {priority} Priority
+                      </span>
+                    </div>
                   </div>
 
                   {req.distance !== null && (
@@ -1039,6 +1467,26 @@ export default function LiveRequests() {
                   </div>
 
                   <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={(e) => handleShowRequestDetails(req, e)}
+                      title="View request details"
+                      style={{
+                        width: "40px",
+                        padding: "10px",
+                        background: "rgba(0, 102, 204, 0.1)",
+                        border: "1px solid rgba(0, 102, 204, 0.25)",
+                        borderRadius: "8px",
+                        color: "#0066cc",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <Info size={15} />
+                    </button>
+
                     {(req.status === "Pending" || req.status === "Urgent") && (
                       <button
                         onClick={(e) => handleAccept(req.id, e)}
@@ -1210,8 +1658,16 @@ export default function LiveRequests() {
 
         <DeckGL
           viewState={viewState}
-          controller={false}
+          controller={{
+            dragPan: true,
+            scrollZoom: true,
+            doubleClickZoom: true,
+            touchZoom: true,
+            dragRotate: false,
+            touchRotate: false,
+          }}
           layers={layers}
+          onViewStateChange={handleMapMove}
           onClick={(info) => {
             if (isSelectingOnMap) {
               handleMapClick(info);
@@ -1237,6 +1693,60 @@ export default function LiveRequests() {
             style={{ width: "100%", height: "100%" }}
           />
         </DeckGL>
+
+        <div
+          style={{
+            position: "absolute",
+            bottom: "24px",
+            left: "16px",
+            zIndex: 1001,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: "10px",
+            border: "1px solid rgba(0, 102, 204, 0.25)",
+            background: "rgba(255, 255, 255, 0.96)",
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => handleMapZoom(1)}
+            title="Zoom in"
+            style={{
+              width: "42px",
+              height: "42px",
+              border: "none",
+              borderBottom: "1px solid rgba(0, 102, 204, 0.18)",
+              background: "transparent",
+              color: "#0066cc",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Plus size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMapZoom(-1)}
+            title="Zoom out"
+            style={{
+              width: "42px",
+              height: "42px",
+              border: "none",
+              background: "transparent",
+              color: "#0066cc",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Minus size={20} />
+          </button>
+        </div>
 
         {selectedRequest && selectedRouteDistanceKm !== null && (
           <div
@@ -1322,68 +1832,6 @@ export default function LiveRequests() {
           </div>
         </div>
 
-        {/* Stats Overlay */}
-        <div style={{
-          position: "absolute",
-          bottom: "16px",
-          left: "16px",
-          right: "16px",
-          display: "flex",
-          gap: "12px",
-          zIndex: 1000,
-        }}>
-          {[
-            { label: "Total Active", value: activeRequests.length, Icon: MapPin, color: "#0066cc" },
-            { label: "Urgent", value: activeRequests.filter(r => r.status === "Urgent" || r.urgency === "Critical").length, Icon: AlertCircle, color: "#d94a3f" },
-            { label: "Nearest", value: requestsWithDistance[0]?.distance ? `${requestsWithDistance[0].distance.toFixed(1)} km` : "N/A", Icon: Ruler, color: "#0066cc" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                flex: 1,
-                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
-                border: "1px solid rgba(217, 95, 58, 0.3)",
-                borderRadius: "12px",
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                transition: "all 0.3s ease",
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)"
-              }}
-            >
-              <stat.Icon size={24} color={stat.color} />
-              <div>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{stat.label}</div>
-                <div style={{ fontSize: "20px", fontWeight: 900, color: stat.color }}>{stat.value}</div>
-              </div>
-            </div>
-          ))}
-
-          <button
-            title="Real-time updates active via Socket.IO"
-            style={{
-              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95))",
-              border: "1px solid rgba(47, 158, 115, 0.4)",
-              borderRadius: "12px",
-              padding: "12px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "default",
-              color: "#2f9e73",
-              fontWeight: 700,
-              fontSize: "11px",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              animation: "pulse 2s infinite",
-              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.08)"
-            }}
-          >
-            <RefreshCw size={16} style={{ animation: "spin 3s linear infinite" }} />
-            Live
-          </button>
-        </div>
       </div>
 
       {/* Ground Station Settings Modal */}
@@ -1394,337 +1842,14 @@ export default function LiveRequests() {
         setGsLocation={setGsLocation}
       />
 
-      {/* Selected Request Detail Panel */}
-      {selectedRequest && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            right: 0,
-            width: "420px",
-            height: "100vh",
-            background: "#f5f7fa",
-            borderLeft: "1px solid rgba(0, 102, 204, 0.2)",
-            zIndex: 1500,
-            display: "flex",
-            flexDirection: "column",
-            animation: "slideInRight 0.3s ease-out",
-            boxShadow: "-10px 0 30px rgba(0, 0, 0, 0.1)"
-          }}
-        >
-          {/* Header */}
-          <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.2)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", flex: 1 }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  background: `linear-gradient(135deg, rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}), rgb(${Math.max(0, statusColors[selectedRequest.status][0]-40)}, ${Math.max(0, statusColors[selectedRequest.status][1]-40)}, ${Math.max(0, statusColors[selectedRequest.status][2]-40)}))`,
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: `0 4px 12px rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`
-                }}>
-                {selectedRequest.resource === "Food" ? (
-                  <Utensils size={28} color="white" />
-                ) : selectedRequest.resource === "Medical" ? (
-                  <Pill size={28} color="white" />
-                ) : selectedRequest.resource === "Shelter" ? (
-                  <Tent size={28} color="white" />
-                ) : (
-                  <Package size={28} color="white" />
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "4px" }}>{selectedRequest.resource}</h2>
-                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)" }}>Request #{selectedRequest.id?.toString().slice(-6).toUpperCase()}</p>
-                <div style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Clock size={12} />
-                  {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setSelectedRequest(null)}
-              style={{
-                background: "rgba(217, 74, 63, 0.15)",
-                border: "1px solid rgba(217, 74, 63, 0.3)",
-                borderRadius: "8px",
-                padding: "8px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s ease"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(217, 74, 63, 0.25)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(217, 74, 63, 0.15)";
-              }}
-            >
-              <X size={20} color="#d94a3f" />
-            </button>
-          </div>
-
-          {/* Status Badge */}
-          <div style={{ padding: "0 24px", marginTop: "12px" }}>
-            <div style={{ display: "inline-block", padding: "6px 14px", background: `rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.15)`, border: `1px solid rgba(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]}, 0.3)`, borderRadius: "8px", fontSize: "11px", fontWeight: 700, color: `rgb(${statusColors[selectedRequest.status][0]}, ${statusColors[selectedRequest.status][1]}, ${statusColors[selectedRequest.status][2]})` }}>
-              {selectedRequest.status}
-            </div>
-          </div>
-
-          {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-            {/* Delivery Progress */}
-            <div style={{ marginBottom: "28px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Delivery Progress
-              </label>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                {["Pending", "Assigned", "In Transit", "Delivered"].map((stage, idx) => {
-                  const currentIdx = ["Pending", "Assigned", "In Transit", "Delivered"].indexOf(selectedRequest.status);
-                  const isActive = idx <= currentIdx;
-                  const isCurrent = selectedRequest.status === stage;
-                  const stageIcons = [Satellite, Target, Helicopter, CheckCircle];
-                  const StageIcon = stageIcons[idx];
-
-                  return (
-                    <div key={stage} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          background: `linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04))`,
-                          border: isCurrent ? "3px solid rgba(217, 95, 58, 0.5)" : "2px solid transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxShadow: isCurrent ? "0 0 16px rgba(217, 95, 58, 0.25)" : "none",
-                          transition: "all 0.3s ease",
-                        }}
-                      >
-                        <StageIcon size={18} color={isActive ? "white" : "var(--text-muted)"} />
-                      </div>
-                      <span style={{ fontSize: "10px", color: isActive ? "var(--text-primary)" : "var(--text-muted)", marginTop: "8px", fontWeight: isCurrent ? 700 : 500, textAlign: "center" }}>
-                        {stage}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Distance & Bearing */}
-            {selectedRequest.distance && (
-              <div style={{ marginBottom: "28px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
-                  <Navigation size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.distance.toFixed(1)}</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Kilometers</div>
-                </div>
-                <div style={{ padding: "16px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.3)", borderRadius: "12px" }}>
-                  <MapPin size={20} color="#0066cc" style={{ marginBottom: "10px" }} />
-                  <div style={{ fontSize: "24px", fontWeight: 900, color: "#0066cc" }}>{selectedRequest.bearing}°</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>Bearing {selectedRequest.direction}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Request Details Sections */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                Details
-              </label>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {selectedRequest.state && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                    <MapPin size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>State</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.state}</div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedRequest.people_affected && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(220, 38, 38, 0.25)", borderRadius: "10px" }}>
-                    <User size={18} color="#dc2626" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>People Affected</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.people_affected}</div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedRequest.disaster_type && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(217, 164, 65, 0.3)", borderRadius: "10px" }}>
-                    <AlertTriangle size={18} color="#d9a441" style={{ marginTop: "2px", flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Disaster Type</div>
-                      <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{selectedRequest.disaster_type}</div>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                  <Clock size={18} color="#0066cc" style={{ marginTop: "2px", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Requested At</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-primary)", fontWeight: 600 }}>
-                      {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleString("en-IN")}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedRequest.note && (
-                  <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(0, 102, 204, 0.25)", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Note</div>
-                    <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.6" }}>{selectedRequest.note}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* GPS Coordinates */}
-            {selectedRequest.lat && selectedRequest.lon && (
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", marginBottom: "14px", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-                  GPS Coordinates
-                </label>
-                <div style={{ padding: "14px", background: "#ffffff", border: "1px solid rgba(47, 158, 115, 0.3)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <code style={{ fontSize: "12px", color: "#2f9e73", fontFamily: "monospace", fontWeight: 600 }}>
-                    {selectedRequest.lat.toFixed(6)}, {selectedRequest.lon.toFixed(6)}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${selectedRequest.lat}, ${selectedRequest.lon}`);
-                      toast.success("Coordinates copied!", { icon: "📋" });
-                    }}
-                    style={{
-                      background: "rgba(47, 158, 115, 0.15)",
-                      border: "1px solid rgba(47, 158, 115, 0.4)",
-                      borderRadius: "6px",
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#2f9e73",
-                      transition: "all 0.2s ease"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.3)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(47, 158, 115, 0.2)";
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ padding: "24px", borderTop: "1px solid rgba(0, 102, 204, 0.15)", display: "flex", gap: "12px", background: "#ffffff" }}>
-            {(selectedRequest.status === "Pending" || selectedRequest.status === "Urgent") && (
-              <button
-                onClick={(e) => handleAccept(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)",
-                }}
-              >
-                <CheckCircle size={18} />
-                Accept & Assign Drone
-              </button>
-            )}
-
-            {selectedRequest.status === "Assigned" && (
-              <button
-                onClick={(e) => handleInTransit(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
-                }}
-              >
-                <Send size={18} />
-                Launch Drone
-              </button>
-            )}
-
-            {selectedRequest.status === "In Transit" && (
-              <button
-                onClick={(e) => handleDelivered(selectedRequest.id, e)}
-                disabled={processingId === selectedRequest.id}
-                style={{
-                  flex: 1,
-                  padding: "14px",
-                  background: "#0066cc",
-                  border: "none",
-                  borderRadius: "10px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: processingId === selectedRequest.id ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  opacity: processingId === selectedRequest.id ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 4px 12px rgba(0, 102, 204, 0.25)"
-                }}
-              >
-                <Truck size={18} />
-                Confirm Delivery
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <RequestDetailsModal
+        request={detailRequest}
+        onClose={() => setDetailRequest(null)}
+      />
 
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
         }
         @keyframes fadeInUp {
           from {
@@ -1734,16 +1859,6 @@ export default function LiveRequests() {
           to {
             opacity: 1;
             transform: translateY(0);
-          }
-        }
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
           }
         }
       `}</style>

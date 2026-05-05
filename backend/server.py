@@ -35,6 +35,12 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
 
 URGENCY_ORDER = {'Critical': 0, 'High': 1, 'Urgent': 2, 'Normal': 3}
+URGENCY_ALIASES = {
+    'critical': 'Critical',
+    'high': 'High',
+    'urgent': 'Urgent',
+    'normal': 'Normal',
+}
 
 
 class Config:
@@ -306,9 +312,14 @@ def serialize_docs(docs) -> list:
 
 def triage_sort_key(r):
     """Sort by urgency priority first, then by age (oldest first = highest priority)."""
-    urgency_rank = URGENCY_ORDER.get(r.get('urgency', 'Urgent'), 99)
+    urgency_rank = URGENCY_ORDER.get(r.get('urgency') or r.get('priority') or 'Urgent', 99)
     created = r.get('created_at') or ''
     return (urgency_rank, created)
+
+
+def normalize_urgency(value):
+    urgency = str(value or '').strip()
+    return URGENCY_ALIASES.get(urgency.lower(), 'Urgent')
 
 
 # ── REST: Health ──────────────────────────────────────────────────────────────
@@ -485,9 +496,7 @@ def submit_request():
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
         return jsonify({'message': 'Invalid coordinates'}), 400
 
-    urgency = data.get('urgency', 'Urgent')
-    if urgency not in ('Critical', 'High', 'Urgent', 'Normal'):
-        urgency = 'Urgent'
+    urgency = normalize_urgency(data.get('urgency') or data.get('priority') or 'Urgent')
     status = 'Pending'
 
     ref_id = 'REQ-' + uuid4().hex[:8].upper()
@@ -506,6 +515,7 @@ def submit_request():
             'lat': lat,
             'lon': lon,
             'urgency': urgency,
+            'priority': urgency,
             'status': status,
             'disaster_type': str(data.get('disaster') or data.get('disaster_type') or '').strip(),
             'people_affected': int(data.get('people') or data.get('people_affected') or 1),
@@ -527,6 +537,7 @@ def submit_request():
             'lat': lat,
             'lon': lon,
             'urgency': urgency,
+            'priority': urgency,
             'status': status,
             'cart': cart,
             'state': str(data.get('state') or ''),
@@ -588,7 +599,7 @@ def get_request(request_id):
 def search_requests():
     status = req.args.get('status')
     resource = req.args.get('resource')
-    urgency = req.args.get('urgency')
+    urgency = req.args.get('urgency') or req.args.get('priority')
     limit = min(int(req.args.get('limit', 100)), 500)
 
     try:
@@ -601,7 +612,7 @@ def search_requests():
         if resource:
             query['resource'] = resource
         if urgency:
-            query['urgency'] = urgency
+            query['urgency'] = normalize_urgency(urgency)
 
         requests = list(requests_col.find(query).sort('created_at', DESCENDING).limit(limit))
         result = serialize_docs(requests)

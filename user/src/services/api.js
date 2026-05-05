@@ -180,6 +180,7 @@ export const submitRequest = async ({
   lat,
   lon,
   urgency = 'Urgent', // 'Critical' | 'High' | 'Urgent' | 'Normal'
+  priority = urgency,
 }) => {
   try {
     const response = await retryRequest(() =>
@@ -190,6 +191,7 @@ export const submitRequest = async ({
         lat,
         lon,
         urgency,
+        priority,
         // status is NOT sent — backend sets it to 'Pending' by default
       })
     );

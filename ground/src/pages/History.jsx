@@ -12,17 +12,17 @@ export default function History() {
 
   const statusColors = {
     Pending: "#f59e0b",
-    Assigned: "#8b5cf6",
+    Assigned: "#0066cc",
     "In Transit": "#06b6d4",
     Delivered: "#10b981",
     UserConfirmed: "#10b981",
-    Urgent: "#ec4899",
+    Urgent: "#dc2626",
     Critical: "#dc2626",
   };
 
   const statusBgGradients = {
     Pending: "rgba(245, 158, 11, 0.08)",
-    Assigned: "rgba(139, 92, 246, 0.08)",
+    Assigned: "rgba(0, 102, 204, 0.08)",
     "In Transit": "rgba(6, 182, 212, 0.08)",
     Delivered: "rgba(16, 185, 129, 0.08)",
     UserConfirmed: "rgba(16, 185, 129, 0.08)",
@@ -63,8 +63,8 @@ export default function History() {
           style={{
             width: "48px",
             height: "48px",
-            border: "3px solid rgba(47, 143, 182, 0.2)",
-            borderTop: "3px solid #2f8fb6",
+            border: "3px solid rgba(0, 102, 204, 0.2)",
+            borderTop: "3px solid #0066cc",
             borderRadius: "50%",
             animation: "spin 1s linear infinite",
           }}
@@ -79,11 +79,11 @@ export default function History() {
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <Calendar size={32} color="#8b5cf6" />
+          <Calendar size={32} color="#0066cc" />
           Request History
         </h1>
         <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#10b981" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#ec4899" }}>{pendingCount}</strong> pending
+          Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#10b981" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#dc2626" }}>{pendingCount}</strong> pending
         </p>
       </div>
 
@@ -97,7 +97,7 @@ export default function History() {
         }}
       >
         {[
-          { label: "Total Requests", value: requests.length, Icon: Package, color: "#8b5cf6" },
+          { label: "Total Requests", value: requests.length, Icon: Package, color: "#0066cc" },
           { label: "Completed", value: deliveredCount, Icon: CheckCircle, color: "#10b981" },
           { label: "In Progress", value: pendingCount, Icon: Hourglass, color: "#f59e0b" },
           { label: "Success Rate", value: requests.length > 0 ? Math.round((deliveredCount / requests.length) * 100) + "%" : "0%", Icon: BarChart3, color: "#06b6d4" },
@@ -105,8 +105,8 @@ export default function History() {
           <div
             key={idx}
             style={{
-              background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.03))",
-              border: "1px solid rgba(139, 92, 246, 0.1)",
+              background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.03))",
+              border: "1px solid rgba(0, 102, 204, 0.1)",
               borderRadius: "12px",
               padding: "16px",
               display: "flex",
@@ -153,8 +153,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
-            border: "1px solid rgba(139, 92, 246, 0.1)",
+            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
+            border: "1px solid rgba(0, 102, 204, 0.1)",
             borderRadius: "10px",
             padding: "12px 16px",
             color: "var(--text-muted)",
@@ -182,8 +182,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
-            border: "1px solid rgba(139, 92, 246, 0.1)",
+            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
+            border: "1px solid rgba(0, 102, 204, 0.1)",
             borderRadius: "10px",
             padding: "8px 14px",
             color: "var(--text-muted)",
@@ -216,8 +216,8 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
-            border: "1px solid rgba(139, 92, 246, 0.15)",
+            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
+            border: "1px solid rgba(0, 102, 204, 0.15)",
             borderRadius: "10px",
             padding: "8px 14px",
             color: "var(--text-muted)",
@@ -245,9 +245,9 @@ export default function History() {
       {/* History Table */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(109, 40, 217, 0.02))",
+          background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(139, 92, 246, 0.15)",
+          border: "1px solid rgba(0, 102, 204, 0.15)",
           borderRadius: "12px",
           overflow: "hidden",
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
@@ -260,8 +260,8 @@ export default function History() {
             gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
             gap: "16px",
             padding: "16px 20px",
-            borderBottom: "1px solid rgba(139, 92, 246, 0.1)",
-            background: "rgba(139, 92, 246, 0.05)",
+            borderBottom: "1px solid rgba(0, 102, 204, 0.1)",
+            background: "rgba(0, 102, 204, 0.05)",
             fontWeight: 700,
             fontSize: "12px",
             color: "var(--text-muted)",
@@ -292,21 +292,18 @@ export default function History() {
                   gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
                   gap: "16px",
                   padding: "16px 20px",
-                  borderBottom: "1px solid rgba(139, 92, 246, 0.08)",
+                  borderBottom: "1px solid rgba(0, 102, 204, 0.08)",
                   alignItems: "center",
                   transition: "all 0.2s ease",
                   background: idx % 2 === 0 ? "rgba(255, 255, 255, 0.01)" : "transparent",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(217, 95, 58, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = idx % 2 === 0 ? "rgba(255, 255, 255, 0.01)" : "transparent";
+                  e.currentTarget.style.background = "rgba(0, 102, 204, 0.08)";
                 }}
               >
                 {/* Resource */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Package size={16} color="#d95f3a" />
+                  <Package size={16} color="#0066cc" />
                   <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--text-primary)" }}>{request.resource}</span>
                 </div>
 
@@ -347,9 +344,9 @@ export default function History() {
                   <button
                     onClick={() => setSelectedRequest(request)}
                     style={{
-                      background: "rgba(217, 95, 58, 0.15)",
-                      border: "1px solid rgba(217, 95, 58, 0.3)",
-                      color: "#d95f3a",
+                      background: "rgba(0, 102, 204, 0.15)",
+                      border: "1px solid rgba(0, 102, 204, 0.3)",
+                      color: "#0066cc",
                       padding: "6px 10px",
                       borderRadius: "6px",
                       fontSize: "11px",
@@ -358,10 +355,10 @@ export default function History() {
                       transition: "all 0.2s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(217, 95, 58, 0.3)";
+                      e.currentTarget.style.background = "rgba(0, 102, 204, 0.3)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(217, 95, 58, 0.15)";
+                      e.currentTarget.style.background = "rgba(0, 102, 204, 0.15)";
                     }}
                   >
                     View
@@ -395,7 +392,7 @@ export default function History() {
           <div
             style={{
               background: "linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98))",
-              border: "1px solid rgba(217, 95, 58, 0.2)",
+              border: "1px solid rgba(0, 102, 204, 0.2)",
               borderRadius: "20px",
               maxWidth: "500px",
               width: "100%",
@@ -407,7 +404,7 @@ export default function History() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div style={{ padding: "24px", borderBottom: "1px solid rgba(217, 95, 58, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ padding: "24px", borderBottom: "1px solid rgba(0, 102, 204, 0.1)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ width: "48px", height: "48px", background: statusColors[selectedRequest.status], borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {selectedRequest.resource === "Food" ? (
@@ -428,14 +425,14 @@ export default function History() {
               <button
                 onClick={() => setSelectedRequest(null)}
                 style={{
-                  background: "rgba(217, 74, 63, 0.15)",
-                  border: "1px solid rgba(217, 74, 63, 0.3)",
+                  background: "rgba(0, 102, 204, 0.15)",
+                  border: "1px solid rgba(0, 102, 204, 0.3)",
                   borderRadius: "8px",
                   padding: "8px",
                   cursor: "pointer",
                 }}
               >
-                <X size={20} color="#d94a3f" />
+                <X size={20} color="#0066cc" />
               </button>
             </div>
 
@@ -466,8 +463,8 @@ export default function History() {
               {/* Details Grid */}
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {selectedRequest.state && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(217, 95, 58, 0.1)", borderRadius: "10px", border: "1px solid rgba(217, 95, 58, 0.2)" }}>
-                    <MapPin size={18} color="#d95f3a" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(0, 102, 204, 0.1)", borderRadius: "10px", border: "1px solid rgba(0, 102, 204, 0.2)" }}>
+                    <MapPin size={18} color="#0066cc" />
                     <div>
                       <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>State</div>
                       <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, marginTop: "2px" }}>{selectedRequest.state}</div>
@@ -476,8 +473,8 @@ export default function History() {
                 )}
 
                 {selectedRequest.people_affected && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(217, 74, 63, 0.1)", borderRadius: "10px", border: "1px solid rgba(217, 74, 63, 0.2)" }}>
-                    <User size={18} color="#d94a3f" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(0, 102, 204, 0.1)", borderRadius: "10px", border: "1px solid rgba(0, 102, 204, 0.2)" }}>
+                    <User size={18} color="#0066cc" />
                     <div>
                       <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>People Affected</div>
                       <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, marginTop: "2px" }}>{selectedRequest.people_affected}</div>
@@ -486,8 +483,8 @@ export default function History() {
                 )}
 
                 {selectedRequest.disaster_type && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(217, 164, 65, 0.1)", borderRadius: "10px", border: "1px solid rgba(217, 164, 65, 0.2)" }}>
-                    <AlertTriangle size={18} color="#d9a441" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(0, 102, 204, 0.1)", borderRadius: "10px", border: "1px solid rgba(0, 102, 204, 0.2)" }}>
+                    <AlertTriangle size={18} color="#0066cc" />
                     <div>
                       <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Disaster Type</div>
                       <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, marginTop: "2px" }}>{selectedRequest.disaster_type}</div>
@@ -496,7 +493,7 @@ export default function History() {
                 )}
 
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px", background: "rgba(30, 111, 143, 0.1)", borderRadius: "10px", border: "1px solid rgba(30, 111, 143, 0.2)" }}>
-                  <Clock size={18} color="#1e6f8f" />
+                  <Clock size={18} color="#0066cc" />
                   <div>
                     <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Requested At</div>
                     <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, marginTop: "2px" }}>
@@ -506,7 +503,7 @@ export default function History() {
                 </div>
 
                 {selectedRequest.note && (
-                  <div style={{ padding: "14px", background: "rgba(217, 95, 58, 0.1)", borderRadius: "10px", border: "1px solid rgba(217, 95, 58, 0.2)" }}>
+                  <div style={{ padding: "14px", background: "rgba(0, 102, 204, 0.1)", borderRadius: "10px", border: "1px solid rgba(0, 102, 204, 0.2)" }}>
                     <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Note</div>
                     <div style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: "1.6" }}>{selectedRequest.note}</div>
                   </div>
@@ -528,14 +525,14 @@ export default function History() {
                           justifyContent: "space-between",
                           alignItems: "center",
                           padding: "12px",
-                          background: "rgba(217, 95, 58, 0.05)",
-                          border: "1px solid rgba(217, 95, 58, 0.1)",
+                          background: "rgba(0, 102, 204, 0.05)",
+                          border: "1px solid rgba(0, 102, 204, 0.1)",
                           borderRadius: "10px",
                         }}
                       >
                         <span style={{ fontSize: "13px", color: "var(--text-primary)" }}>{item.name || item}</span>
                         {item.quantity && (
-                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#d95f3a", background: "rgba(217, 95, 58, 0.15)", padding: "4px 10px", borderRadius: "6px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#0066cc", background: "rgba(0, 102, 204, 0.15)", padding: "4px 10px", borderRadius: "6px" }}>
                             x{item.quantity}
                           </span>
                         )}
@@ -552,7 +549,7 @@ export default function History() {
                     GPS Coordinates
                   </label>
                   <div style={{ padding: "12px", background: "rgba(47, 158, 115, 0.05)", border: "1px solid rgba(47, 158, 115, 0.15)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <code style={{ fontSize: "12px", color: "#2f9e73" }}>
+                    <code style={{ fontSize: "12px", color: "#16a34a" }}>
                       {selectedRequest.lat.toFixed(6)}, {selectedRequest.lon.toFixed(6)}
                     </code>
                     <button
@@ -568,7 +565,7 @@ export default function History() {
                         cursor: "pointer",
                         fontSize: "10px",
                         fontWeight: 700,
-                        color: "#2f9e73",
+                        color: "#16a34a",
                       }}
                     >
                       Copy
@@ -579,13 +576,13 @@ export default function History() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "24px", borderTop: "1px solid rgba(217, 95, 58, 0.15)" }}>
+            <div style={{ padding: "24px", borderTop: "1px solid rgba(0, 102, 204, 0.15)" }}>
               <button
                 onClick={() => setSelectedRequest(null)}
                 style={{
                   width: "100%",
                   padding: "14px",
-                  background: "linear-gradient(135deg, #d95f3a, #1e6f8f)",
+                  background: "linear-gradient(135deg, #0066cc, #004a99)",
                   border: "none",
                   borderRadius: "10px",
                   color: "#ffffff",

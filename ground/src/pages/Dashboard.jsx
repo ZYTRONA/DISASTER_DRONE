@@ -214,6 +214,17 @@ function RecentRequests({ requests }) {
   );
 }
 
+function getRequestPriority(request) {
+  const value = String(request?.priority || request?.urgency || "Urgent").trim().toLowerCase();
+  const priorityMap = {
+    critical: "Critical",
+    high: "High",
+    urgent: "Urgent",
+    normal: "Normal",
+  };
+  return priorityMap[value] || "Urgent";
+}
+
 function SystemStatus({ connected }) {
   return (
     <div
@@ -289,7 +300,7 @@ export default function Dashboard() {
       total: requests.length,
       active: requests.filter((r) => r.status !== "Delivered" && r.status !== "UserConfirmed").length,
       delivered: requests.filter((r) => r.status === "Delivered" || r.status === "UserConfirmed").length,
-      urgent: requests.filter((r) => r.status === "Urgent" || r.urgency === "Critical").length,
+      urgent: requests.filter((r) => ["Critical", "High", "Urgent"].includes(getRequestPriority(r))).length,
       assigned: requests.filter((r) => r.status === "Assigned").length,
     };
     setStats(newStats);
