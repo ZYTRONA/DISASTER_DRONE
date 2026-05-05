@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Camera, Gamepad2, Settings, RefreshCw, Volume2, VolumeX, Maximize, AlertCircle, Wifi, WifiOff, Battery, Compass, Activity, TrendingUp, Zap, Send, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../styles/DroneOperations.css';
+import { formatTime } from '../utils/dateTime';
 
 export default function DroneOperations() {
   // Webcam State
@@ -24,7 +25,8 @@ export default function DroneOperations() {
   const [yaw, setYaw] = useState(0);
   const [showDroneSettings, setShowDroneSettings] = useState(false);
 
-  const DEFAULT_CAMERA_URL = 'http://192.168.1.100:81/stream';
+  const DEFAULT_CAMERA_URL =
+    import.meta.env.VITE_ESP32_STREAM_URL || 'http://192.168.4.1/stream';
 
   // Initialize camera URL from storage
   useEffect(() => {
@@ -160,7 +162,7 @@ export default function DroneOperations() {
                     type="text"
                     value={webcamURL}
                     onChange={(e) => setWebcamURL(e.target.value)}
-                    placeholder="http://192.168.1.100:81/stream"
+                    placeholder="http://192.168.4.1/stream"
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -207,7 +209,7 @@ export default function DroneOperations() {
                 />
                 <div className="camera-overlay">
                   <div className="camera-info">
-                    <span>🔴 LIVE - {new Date().toLocaleTimeString()}</span>
+                    <span>🔴 LIVE - {formatTime(new Date())}</span>
                   </div>
                 </div>
               </div>

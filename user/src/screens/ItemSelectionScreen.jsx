@@ -24,6 +24,7 @@ import Toast from 'react-native-toast-message';
 import { useAppContext } from '../context/AppContext';
 import { Colors } from '../themes/colors';
 import { FOOD_ITEMS, MEDICINE_ITEMS, FIRST_AID_ITEMS } from '../utils/constants';
+import { getCurrentLocation } from '../services/location';
 
 const ITEM_GRID_COLS = 2;
 const SLIDE_INTERVAL_MS = 2500;
@@ -238,6 +239,7 @@ export default function ItemSelectionScreen({ navigation, route }) {
 
     setLoading(true);
     try {
+      const location = await getCurrentLocation();
       const itemsList = items
         .filter((item) => selectedItems[item.id])
         .map((item) => ({
@@ -252,8 +254,9 @@ export default function ItemSelectionScreen({ navigation, route }) {
         urgency: urgency || 'normal',
         items: itemsList,
         people,
+        location,
         notes,
-        timestamp: new Date().toISOString(),
+        // Timestamp is assigned by backend on submit; keep client payload minimal.
       };
 
       await submitRequest?.(requestData);

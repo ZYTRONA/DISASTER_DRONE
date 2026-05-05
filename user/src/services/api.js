@@ -12,7 +12,7 @@
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getBackendUrl, storeBackendUrl } from './storage';
+import { getBackendUrl, saveBackendUrl } from './storage';
 
 let api = null;
 const REQUEST_TIMEOUT = parseInt(process.env.EXPO_PUBLIC_TIMEOUT_MS, 10) || 10000;
@@ -103,7 +103,7 @@ export const reinitializeApi = async (newUrl) => {
     const BACKEND_URL =
       newUrl || (await getBackendUrl()) || 'http://localhost:5000';
 
-    if (newUrl) await storeBackendUrl(newUrl);
+    if (newUrl) await saveBackendUrl(newUrl);
 
     api = axios.create({
       baseURL: BACKEND_URL,
@@ -210,6 +210,10 @@ export const submitRequest = async ({
         `Network Error: Cannot reach backend at ${backendUrl}. ` +
           'Make sure the backend server is running.'
       );
+    }
+    const serverMessage = err.response?.data?.message || err.response?.data?.error;
+    if (serverMessage) {
+      throw new Error(serverMessage);
     }
     throw err;
   }

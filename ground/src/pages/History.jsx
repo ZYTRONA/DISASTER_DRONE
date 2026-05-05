@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, Filter, Package, MapPin, Clock, ChevronDown, Calendar, TrendingUp, X, User, AlertTriangle, Navigation, BarChart3, CheckCircle, Hourglass, Utensils, Pill, Tent, Clipboard } from "lucide-react";
 import { useRequests } from "../context/RequestsContext";
+import { formatDate, formatDateTime } from "../utils/dateTime";
 import toast from "react-hot-toast";
 
 export default function History() {
@@ -9,6 +10,10 @@ export default function History() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const ink = "#050505";
+  const inkSoft = "#161616";
+  const panelBorder = "rgba(15, 23, 42, 0.12)";
+  const premiumShadow = "0 18px 48px rgba(15, 23, 42, 0.1)";
 
   const statusColors = {
     Pending: "#f59e0b",
@@ -21,13 +26,13 @@ export default function History() {
   };
 
   const statusBgGradients = {
-    Pending: "rgba(245, 158, 11, 0.08)",
-    Assigned: "rgba(0, 102, 204, 0.08)",
-    "In Transit": "rgba(6, 182, 212, 0.08)",
-    Delivered: "rgba(16, 185, 129, 0.08)",
-    UserConfirmed: "rgba(16, 185, 129, 0.08)",
-    Urgent: "rgba(236, 72, 153, 0.08)",
-    Critical: "rgba(220, 38, 38, 0.08)",
+    Pending: "linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.12))",
+    Assigned: "linear-gradient(135deg, rgba(0, 102, 204, 0.2), rgba(0, 102, 204, 0.1))",
+    "In Transit": "linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(6, 182, 212, 0.11))",
+    Delivered: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.1))",
+    UserConfirmed: "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.1))",
+    Urgent: "linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(236, 72, 153, 0.1))",
+    Critical: "linear-gradient(135deg, rgba(220, 38, 38, 0.22), rgba(220, 38, 38, 0.1))",
   };
 
   // Filter and sort requests
@@ -75,14 +80,14 @@ export default function History() {
   }
 
   return (
-    <div style={{ padding: "32px", overflowY: "auto", height: "100%", background: "var(--bg-primary)" }}>
+    <div style={{ padding: "32px", overflowY: "auto", height: "100%", background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 46%, #f3f8ff 100%)" }}>
       {/* Header */}
       <div style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 900, color: "var(--text-primary)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
+        <h1 style={{ fontSize: "32px", fontWeight: 900, color: ink, marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
           <Calendar size={32} color="#0066cc" />
           Request History
         </h1>
-        <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
+        <p style={{ fontSize: "14px", color: inkSoft }}>
           Total: <strong>{requests.length}</strong> requests • <strong style={{ color: "#10b981" }}>{deliveredCount}</strong> delivered • <strong style={{ color: "#dc2626" }}>{pendingCount}</strong> pending
         </p>
       </div>
@@ -105,31 +110,44 @@ export default function History() {
           <div
             key={idx}
             style={{
-              background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.03))",
-              border: "1px solid rgba(0, 102, 204, 0.1)",
+              background: "#ffffff",
+              border: `1px solid ${stat.color}3f`,
               borderRadius: "12px",
               padding: "16px",
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              boxShadow: "0 5px 15px rgba(0, 0, 0, 0.08)",
+              boxShadow: `0 14px 34px ${stat.color}1f`,
               transition: "all 0.3s ease",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "4px",
+                background: `linear-gradient(90deg, ${stat.color}, ${stat.color}99)`,
+              }}
+            />
             <div style={{
               width: "48px",
               height: "48px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: `${stat.color}15`,
+              background: `linear-gradient(135deg, ${stat.color}2b, ${stat.color}14)`,
               borderRadius: "10px",
-              border: `1px solid ${stat.color}30`,
+              border: `1px solid ${stat.color}55`,
+              boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 18px ${stat.color}1c`,
             }}>
               <stat.Icon size={24} color={stat.color} />
             </div>
             <div>
-              <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>{stat.label}</div>
+              <div style={{ fontSize: "11px", color: ink, textTransform: "uppercase", letterSpacing: 0, fontWeight: 900 }}>{stat.label}</div>
               <div style={{ fontSize: "24px", fontWeight: 900, color: stat.color }}>{stat.value}</div>
             </div>
           </div>
@@ -153,11 +171,12 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
-            border: "1px solid rgba(0, 102, 204, 0.1)",
+            background: "#ffffff",
+            border: `1px solid ${panelBorder}`,
             borderRadius: "10px",
             padding: "12px 16px",
-            color: "var(--text-muted)",
+            color: ink,
+            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
           }}
         >
           <Search size={18} />
@@ -170,7 +189,7 @@ export default function History() {
               flex: 1,
               background: "transparent",
               border: "none",
-              color: "var(--text-primary)",
+              color: ink,
               fontSize: "13px",
               outline: "none",
             }}
@@ -182,11 +201,12 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
-            border: "1px solid rgba(0, 102, 204, 0.1)",
+            background: "#ffffff",
+            border: `1px solid ${panelBorder}`,
             borderRadius: "10px",
             padding: "8px 14px",
-            color: "var(--text-muted)",
+            color: ink,
+            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
           }}
         >
           <Filter size={16} />
@@ -196,7 +216,7 @@ export default function History() {
             style={{
               background: "transparent",
               border: "none",
-              color: "var(--text-primary)",
+              color: ink,
               fontSize: "13px",
               outline: "none",
               cursor: "pointer",
@@ -216,11 +236,12 @@ export default function History() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
-            border: "1px solid rgba(0, 102, 204, 0.15)",
+            background: "#ffffff",
+            border: `1px solid ${panelBorder}`,
             borderRadius: "10px",
             padding: "8px 14px",
-            color: "var(--text-muted)",
+            color: ink,
+            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.06)",
           }}
         >
           <Clock size={16} />
@@ -230,7 +251,7 @@ export default function History() {
             style={{
               background: "transparent",
               border: "none",
-              color: "var(--text-primary)",
+              color: ink,
               fontSize: "13px",
               outline: "none",
               cursor: "pointer",
@@ -245,12 +266,12 @@ export default function History() {
       {/* History Table */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(0, 102, 204, 0.06), rgba(0, 74, 153, 0.02))",
+          background: "#ffffff",
           backdropFilter: "blur(20px)",
-          border: "1px solid rgba(0, 102, 204, 0.15)",
+          border: `1px solid ${panelBorder}`,
           borderRadius: "12px",
           overflow: "hidden",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.2)",
+          boxShadow: premiumShadow,
         }}
       >
         {/* Table Header */}
@@ -260,13 +281,13 @@ export default function History() {
             gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
             gap: "16px",
             padding: "16px 20px",
-            borderBottom: "1px solid rgba(0, 102, 204, 0.1)",
-            background: "rgba(0, 102, 204, 0.05)",
-            fontWeight: 700,
+            borderBottom: "1px solid rgba(0, 102, 204, 0.16)",
+            background: "linear-gradient(135deg, #eaf4ff 0%, #f4fbff 100%)",
+            fontWeight: 900,
             fontSize: "12px",
-            color: "var(--text-muted)",
+            color: ink,
             textTransform: "uppercase",
-            letterSpacing: "0.1em",
+            letterSpacing: 0,
           }}
         >
           <span>Resource</span>
@@ -292,25 +313,28 @@ export default function History() {
                   gridTemplateColumns: "1fr 1.5fr 1fr 1fr 0.8fr",
                   gap: "16px",
                   padding: "16px 20px",
-                  borderBottom: "1px solid rgba(0, 102, 204, 0.08)",
+                  borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
                   alignItems: "center",
                   transition: "all 0.2s ease",
-                  background: idx % 2 === 0 ? "rgba(255, 255, 255, 0.01)" : "transparent",
+                  background: idx % 2 === 0 ? "#ffffff" : "#f8fbff",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(0, 102, 204, 0.08)";
+                  e.currentTarget.style.background = "#eef7ff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = idx % 2 === 0 ? "#ffffff" : "#f8fbff";
                 }}
               >
                 {/* Resource */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <Package size={16} color="#0066cc" />
-                  <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--text-primary)" }}>{request.resource}</span>
+                  <span style={{ fontWeight: 800, fontSize: "13px", color: ink }}>{request.resource}</span>
                 </div>
 
                 {/* Details */}
-                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "12px", color: inkSoft }}>
                   <div>ID: #{request.id?.toString().slice(-6).toUpperCase()}</div>
-                  {request.note && <div style={{ marginTop: "2px", opacity: 0.7 }}>{request.note.substring(0, 50)}{request.note.length > 50 ? "..." : ""}</div>}
+                  {request.note && <div style={{ marginTop: "2px", opacity: 0.82 }}>{request.note.substring(0, 50)}{request.note.length > 50 ? "..." : ""}</div>}
                 </div>
 
                 {/* Status */}
@@ -318,13 +342,13 @@ export default function History() {
                   <span
                     style={{
                       fontSize: "10px",
-                      fontWeight: 700,
+                      fontWeight: 800,
                       padding: "6px 10px",
                       background: statusBgGradients[request.status] || "rgba(108, 125, 141, 0.12)",
                       color: statusColors[request.status] || "#6c7d8d",
                       borderRadius: "6px",
                       border: statusColors[request.status]
-                        ? `1px solid ${statusColors[request.status]}30`
+                        ? `1px solid ${statusColors[request.status]}55`
                         : "1px solid rgba(108, 125, 141, 0.3)",
                       whiteSpace: "nowrap",
                     }}
@@ -334,9 +358,9 @@ export default function History() {
                 </div>
 
                 {/* Date */}
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: inkSoft }}>
                   <Clock size={14} />
-                  {new Date(request.timestamp || request.created_at).toLocaleDateString("en-IN")}
+                  {formatDate(request.timestamp_ist || request.created_at_ist || request.timestamp || request.created_at)}
                 </div>
 
                 {/* Action */}
@@ -344,8 +368,8 @@ export default function History() {
                   <button
                     onClick={() => setSelectedRequest(request)}
                     style={{
-                      background: "rgba(0, 102, 204, 0.15)",
-                      border: "1px solid rgba(0, 102, 204, 0.3)",
+                      background: "linear-gradient(135deg, rgba(0, 102, 204, 0.16), rgba(6, 182, 212, 0.11))",
+                      border: "1px solid rgba(0, 102, 204, 0.38)",
                       color: "#0066cc",
                       padding: "6px 10px",
                       borderRadius: "6px",
@@ -355,10 +379,10 @@ export default function History() {
                       transition: "all 0.2s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(0, 102, 204, 0.3)";
+                      e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 102, 204, 0.28), rgba(6, 182, 212, 0.18))";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(0, 102, 204, 0.15)";
+                      e.currentTarget.style.background = "linear-gradient(135deg, rgba(0, 102, 204, 0.16), rgba(6, 182, 212, 0.11))";
                     }}
                   >
                     View
@@ -456,7 +480,7 @@ export default function History() {
                   {selectedRequest.status}
                 </span>
                 <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                  {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleString("en-IN")}
+                  {formatDateTime(selectedRequest.timestamp_ist || selectedRequest.created_at_ist || selectedRequest.timestamp || selectedRequest.created_at)}
                 </span>
               </div>
 
@@ -497,7 +521,7 @@ export default function History() {
                   <div>
                     <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Requested At</div>
                     <div style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, marginTop: "2px" }}>
-                      {new Date(selectedRequest.timestamp || selectedRequest.created_at).toLocaleString("en-IN")}
+                      {formatDateTime(selectedRequest.timestamp_ist || selectedRequest.created_at_ist || selectedRequest.timestamp || selectedRequest.created_at)}
                     </div>
                   </div>
                 </div>

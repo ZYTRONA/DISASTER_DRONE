@@ -2,6 +2,10 @@ import { io } from "socket.io-client";
 
 // Environment-based Socket.IO configuration
 const BACKEND_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+const SOCKET_TRANSPORTS = (import.meta.env.VITE_SOCKET_TRANSPORTS || "polling")
+  .split(",")
+  .map((transport) => transport.trim())
+  .filter(Boolean);
 
 console.log("[Socket] Configured for:", BACKEND_URL);
 
@@ -11,7 +15,7 @@ export const socket = io(BACKEND_URL, {
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
-  transports: ["websocket", "polling"],  // Support both transports
+  transports: SOCKET_TRANSPORTS,
   // Add auth header when available (for future JWT implementation)
   extraHeaders: {
     "User-Agent": "NDRF-GroundStation/1.0",
@@ -21,6 +25,10 @@ export const socket = io(BACKEND_URL, {
 
 socket.on("connect", () => {
   console.log("[Socket] ✅ Connected to backend:", socket.id);
+  // Join ground-control room so backend can target GCS-only events (e.g. new_request)
+  try {
+    socket.emit("join", { room: "gcs" });
+  } catch (_) {}
 });
 
 socket.on("disconnect", (reason) => {
@@ -53,19 +61,18 @@ socket.on("telemetry:update", (data) => {
   );
 });
 
-// Request status updates
-socket.on("request:status", (data) => {
-  console.log("[Socket] Request status update:", data);
+// Request updates (backend emits request_update + status_update)
+socket.on("request_update", (data) => {
+  console.log("[Socket] Request update:", data);
   window.dispatchEvent(
-    new CustomEvent("requestStatusUpdate", { detail: data })
+    new CustomEvent("requestUpdate", { detail: data })
   );
 });
 
-// Drone status changes
-socket.on("drone:status", (data) => {
-  console.log("[Socket] Drone status:", data);
+socket.on("status_update", (data) => {
+  console.log("[Socket] Status update:", data);
   window.dispatchEvent(
-    new CustomEvent("droneStatusUpdate", { detail: data })
+    new CustomEvent("requestStatusUpdate", { detail: data })
   );
 });
 

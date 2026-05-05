@@ -11,7 +11,7 @@
  */
 
 import { io } from 'socket.io-client';
-import { getBackendUrl, storeBackendUrl } from './storage';
+import { getBackendUrl, saveBackendUrl } from './storage';
 
 let socket = null;
 let _isConnected = false;
@@ -117,7 +117,7 @@ export const reinitializeSocket = async (newUrl) => {
     const BACKEND_URL =
       newUrl || (await getBackendUrl()) || 'http://localhost:5000';
 
-    if (newUrl) await storeBackendUrl(newUrl);
+    if (newUrl) await saveBackendUrl(newUrl);
 
     socket = createSocket(BACKEND_URL);
     console.log('✅ Socket.IO reinitialized:', BACKEND_URL);

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../context/AppContext';
 import { TRACKING_STAGES } from '../utils/constants';
+import { formatDateTime } from '../utils/dateTime';
 
 /**
  * @param {Object} props - Navigation props
@@ -31,15 +32,6 @@ export default function OrderHistoryScreen({ navigation }) {
   useEffect(() => {
     setOrders(recentRequests || []);
   }, [recentRequests]);
-
-  const formatDate = (isoString) => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (err) {
-      return 'Unknown date';
-    }
-  };
 
   const getStatusColor = (order, index) => {
     if (order.refId === activeRefId) return '#2563eb';
@@ -69,7 +61,7 @@ export default function OrderHistoryScreen({ navigation }) {
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderInfo}>
           <Text style={styles.refId}>Order #{item.refId}</Text>
-          <Text style={styles.timestamp}>{formatDate(item.timestamp)}</Text>
+          <Text style={styles.timestamp}>{formatDateTime(item.timestamp)}</Text>
         </View>
         <View
           style={[

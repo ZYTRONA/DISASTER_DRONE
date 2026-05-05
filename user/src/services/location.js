@@ -29,20 +29,21 @@ export const getCurrentLocation = async () => {
       throw new Error('Location permission denied. Please allow location access and retry.');
     }
 
-    // Get coordinates with retry on timeout
+    // Get coordinates with retry on timeout. Prefer GPS accuracy first so the
+    // Ground Station receives a usable delivery point, then fall back if needed.
     let location = null;
     try {
       location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-        timeout: 10000,
+        accuracy: Location.Accuracy.High,
+        timeout: 15000,
       });
     } catch (_) {
       // Retry with lower accuracy if timeout
-      console.warn('⚠️ Location timeout, retrying with lower accuracy...');
+      console.warn('⚠️ High accuracy location timeout, retrying with balanced accuracy...');
       try {
         location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Low,
-          timeout: 15000,
+          accuracy: Location.Accuracy.Balanced,
+          timeout: 12000,
         });
       } catch (_) {
         location = null;
@@ -65,6 +66,13 @@ export const getCurrentLocation = async () => {
     }
 
     const coords = toCoords(location);
+    if (
+      !Number.isFinite(coords.lat) ||
+      !Number.isFinite(coords.lon) ||
+      (Math.abs(coords.lat) < 0.000001 && Math.abs(coords.lon) < 0.000001)
+    ) {
+      throw new Error('GPS returned invalid coordinates. Please wait for location lock and try again.');
+    }
 
     console.log('✅ Location acquired:', coords);
     return coords;

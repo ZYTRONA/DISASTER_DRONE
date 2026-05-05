@@ -6,6 +6,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { MapPin, Navigation, Package, Clock, AlertTriangle, Radio, Filter, Zap, Settings, X, Crosshair, Save, Search, CheckCircle, Truck, Send, Utensils, Pill, Tent, Helicopter, Hourglass, Plane, Building2, Plus, Minus, Info } from "lucide-react";
 import { useRequests } from "../context/RequestsContext";
+import { formatDateTime, formatTime } from "../utils/dateTime";
 import toast from "react-hot-toast";
 
 // India Boundaries (Lon/Lat for deck.gl)
@@ -133,6 +134,16 @@ function getRequestCoordinates(request) {
   return { lat, lon };
 }
 
+function getRequestId(request) {
+  return request?.id || request?._id;
+}
+
+function isSameRequest(left, right) {
+  const leftId = getRequestId(left);
+  const rightId = getRequestId(right);
+  return leftId != null && rightId != null && String(leftId) === String(rightId);
+}
+
 function getFocusZoom(distanceKm) {
   if (distanceKm <= 2) return 12;
   if (distanceKm <= 5) return 11;
@@ -195,6 +206,9 @@ const statusColors = {
   Urgent: [220, 38, 38],      // #dc2626
   Critical: [220, 38, 38],    // #dc2626
 };
+
+const ROUTE_BLUE = [0, 102, 204];
+const ROUTE_BLUE_DARK = [0, 76, 153];
 
 const OSM_RASTER_STYLE = {
   version: 8,
@@ -636,15 +650,23 @@ function RequestDetailsModal({ request, onClose }) {
     request.state ||
     resolvedAddress?.state ||
     (addressLoading ? "Finding state..." : "Not available");
-  const cartItems = Array.isArray(request.cart)
-    ? request.cart
-    : Array.isArray(request.items)
-      ? request.items
-      : Array.isArray(request.cart?.items)
-        ? request.cart.items
-        : null;
-  const createdAt = request.timestamp || request.created_at;
-  const updatedAt = request.updated_at;
+  const cartItems = Array.isArray(request.cart_items)
+    ? request.cart_items
+    : Array.isArray(request.cart)
+      ? request.cart
+      : Array.isArray(request.items)
+        ? request.items
+        : Array.isArray(request.cart?.items)
+          ? request.cart.items
+          : null;
+  const cartSummary = [
+    request.cart?.items_count || request.people_affected || request.people
+      ? ["People / Quantity", request.cart?.items_count || request.people_affected || request.people]
+      : null,
+    request.cart?.notes ? ["Cart Notes", request.cart.notes] : null,
+  ].filter(Boolean);
+  const createdAt = request.timestamp_ist || request.created_at_ist || request.timestamp || request.created_at;
+  const updatedAt = request.updated_at_ist || request.updated_at;
 
   const detailRows = [
     ["Request ID", request.ref_id || `#${request.id?.toString().slice(-6).toUpperCase()}`],
@@ -655,13 +677,22 @@ function RequestDetailsModal({ request, onClose }) {
     ["State", stateName],
     ["District", districtName],
     ["Area Name", areaName],
-    ["Disaster Type", request.disaster_type || request.disaster || "Not specified"],
     ["Distance", Number.isFinite(request.distance) ? `${request.distance.toFixed(1)} km` : "Not available"],
     ["Bearing", request.bearing ? `${request.bearing}° ${request.direction || ""}` : "Not available"],
     ["Coordinates", Number.isFinite(request.lat) && Number.isFinite(request.lon) ? `${request.lat.toFixed(6)}, ${request.lon.toFixed(6)}` : "Not available"],
-    ["Assigned Drone", request.assigned_drone_id || "Not assigned"],
-    ["Requested At", createdAt ? new Date(createdAt).toLocaleString("en-IN") : "Not available"],
-    ["Updated At", updatedAt ? new Date(updatedAt).toLocaleString("en-IN") : "Not available"],
+    ["Requested At", formatDateTime(createdAt)],
+    ["Updated At", formatDateTime(updatedAt)],
+  ];
+  const submittedInfoRows = [
+    ["Database ID", request.id || request._id || "Not available"],
+    ["Reference ID", request.ref_id || request.refId || "Not available"],
+    ["Urgency", request.urgency || "Not specified"],
+    ["Priority", request.priority || priority],
+    ["People", request.people_affected || request.people || request.cart?.items_count || "Not specified"],
+    ["Latitude", Number.isFinite(request.lat) ? request.lat.toFixed(6) : "Not available"],
+    ["Longitude", Number.isFinite(request.lon) ? request.lon.toFixed(6) : "Not available"],
+    ["Cart Notes", request.cart?.notes || "Not available"],
+    ["Items Count", request.cart?.items_count || cartItems?.length || "Not available"],
   ];
 
   return (
@@ -745,9 +776,9 @@ function RequestDetailsModal({ request, onClose }) {
             </div>
           </div>
 
-          <div>
+          <div style={{ marginBottom: "18px" }}>
             <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>Items / Cart</div>
-            {cartItems ? (
+            {cartItems && cartItems.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {cartItems.map((item, index) => (
                   <div key={`${item.id || item.name || index}`} style={{ padding: "12px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", display: "flex", justifyContent: "space-between", gap: "12px" }}>
@@ -756,11 +787,32 @@ function RequestDetailsModal({ request, onClose }) {
                   </div>
                 ))}
               </div>
+            ) : cartSummary.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {cartSummary.map(([label, value]) => (
+                  <div key={label} style={{ padding: "12px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", display: "grid", gridTemplateColumns: "140px 1fr", gap: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase" }}>{label}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)" }}>{value}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
               <pre style={{ margin: 0, padding: "14px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", background: "rgba(0, 102, 204, 0.04)", color: "var(--text-primary)", fontSize: "12px", overflowX: "auto", whiteSpace: "pre-wrap" }}>
-                {JSON.stringify(request.cart || request.items || {}, null, 2)}
+                No item details available
               </pre>
             )}
+          </div>
+
+          <div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>All Submitted Info</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
+              {submittedInfoRows.map(([label, value]) => (
+                <div key={label} style={{ padding: "11px", border: "1px solid rgba(0, 102, 204, 0.12)", borderRadius: "10px", background: "rgba(0, 102, 204, 0.035)" }}>
+                  <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "5px" }}>{label}</div>
+                  <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: 700, wordBreak: "break-word" }}>{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -769,11 +821,11 @@ function RequestDetailsModal({ request, onClose }) {
 }
 
 export default function LiveRequests() {
-  const { requests, loading, acceptRequest, setInTransit, markDelivered } = useRequests();
+  const { requests, loading, refreshRequests, acceptRequest, setInTransit, markDelivered } = useRequests();
   const latestRequestIdRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailRequest, setDetailRequest] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("pending");
   const [search, setSearch] = useState("");
   const [gsLocation, setGsLocation] = useState(loadGSLocation);
   const [showGSSettings, setShowGSSettings] = useState(false);
@@ -782,6 +834,13 @@ export default function LiveRequests() {
   const [roadRoute, setRoadRoute] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [viewState, setViewState] = useState(() => normalizeViewState());
+
+  useEffect(() => {
+    // Ensure Live Requests stays synced even if user lands here after a long idle period.
+    try {
+      refreshRequests?.("live_requests_mount");
+    } catch (_) {}
+  }, [refreshRequests]);
 
   const handleAccept = async (requestId, e) => {
     e?.stopPropagation();
@@ -820,7 +879,7 @@ export default function LiveRequests() {
       const success = await markDelivered(requestId);
       if (success) {
         toast.success("Delivery confirmed!", { icon: <CheckCircle size={16} /> });
-        if (selectedRequest?.id === requestId) {
+        if (String(getRequestId(selectedRequest)) === String(requestId)) {
           setSelectedRequest(null);
         }
       }
@@ -829,11 +888,6 @@ export default function LiveRequests() {
     }
     setProcessingId(null);
   };
-
-  const handleShowRequestDetails = useCallback((request, e) => {
-    e?.stopPropagation();
-    setDetailRequest(request);
-  }, []);
 
   const handleMapClick = (info) => {
     if (isSelectingOnMap && info) {
@@ -891,15 +945,26 @@ export default function LiveRequests() {
       const coords = getRequestCoordinates(request);
       if (!coords) {
         setSelectedRequest(request);
+        setRoadRoute(null);
+        toast.error("This request has no GPS coordinates, so distance cannot be shown.");
         return;
       }
 
-      const normalizedRequest = { ...request, lat: coords.lat, lon: coords.lon };
+      const distance = calculateDistance(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon);
+      const bearing = calculateBearing(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon);
+      const direction = getDirection(parseFloat(bearing));
+      const normalizedRequest = { ...request, lat: coords.lat, lon: coords.lon, distance, bearing, direction };
       setSelectedRequest(normalizedRequest);
       focusOnRequest(normalizedRequest);
     },
-    [focusOnRequest]
+    [focusOnRequest, gsLocation.lat, gsLocation.lon]
   );
+
+  const handleShowRequestDetails = useCallback((request, e) => {
+    e?.stopPropagation();
+    handleSelectRequest(request);
+    setDetailRequest(request);
+  }, [handleSelectRequest]);
 
   // Filter active requests
   const activeRequests = useMemo(() => {
@@ -920,12 +985,16 @@ export default function LiveRequests() {
       );
     }
 
-    if (filter === "urgent") {
-      filtered = filtered.filter((r) => ["Critical", "High", "Urgent"].includes(getRequestPriority(r)));
+    if (filter === "normal") {
+      filtered = filtered.filter((r) => getRequestPriority(r) === "Normal");
+    } else if (filter === "urgent") {
+      filtered = filtered.filter((r) => getRequestPriority(r) === "Urgent");
+    } else if (filter === "high") {
+      filtered = filtered.filter((r) => getRequestPriority(r) === "High");
     } else if (filter === "pending") {
       filtered = filtered.filter((r) => r.status === "Pending");
     } else if (filter === "assigned") {
-      filtered = filtered.filter((r) => r.status === "Assigned" || r.status === "In Transit");
+      filtered = filtered.filter((r) => r.status === "Assigned");
     }
 
     return filtered;
@@ -953,7 +1022,7 @@ export default function LiveRequests() {
   useEffect(() => {
     if (!selectedRequest) return;
 
-    const updated = requestsWithDistance.find((r) => r.id === selectedRequest.id);
+    const updated = requestsWithDistance.find((r) => isSameRequest(r, selectedRequest));
     if (updated) {
       setSelectedRequest(updated);
     } else {
@@ -963,15 +1032,15 @@ export default function LiveRequests() {
 
   // Keep the info modal synced with live socket updates.
   useEffect(() => {
-    if (!detailRequest?.id) return;
+    if (!getRequestId(detailRequest)) return;
 
-    const updated = requestsWithDistance.find((r) => r.id === detailRequest.id);
+    const updated = requestsWithDistance.find((r) => isSameRequest(r, detailRequest));
     if (updated) {
       setDetailRequest(updated);
     } else {
       setDetailRequest(null);
     }
-  }, [requestsWithDistance, detailRequest?.id]);
+  }, [requestsWithDistance, detailRequest]);
 
   // Auto-focus the newest incoming request so GS -> user location is visible immediately.
   useEffect(() => {
@@ -985,15 +1054,15 @@ export default function LiveRequests() {
       return;
     }
 
-    const newestId = newestActiveWithCoords.id;
+    const newestId = getRequestId(newestActiveWithCoords);
     const hasNewIncomingRequest =
       latestRequestIdRef.current !== null && latestRequestIdRef.current !== newestId;
     const selectedStillVisible = selectedRequest
-      ? requestsWithDistance.some((req) => req.id === selectedRequest.id)
+      ? requestsWithDistance.some((req) => isSameRequest(req, selectedRequest))
       : false;
 
     if (hasNewIncomingRequest || !selectedStillVisible) {
-      const normalizedNewest = requestsWithDistance.find((req) => req.id === newestId);
+      const normalizedNewest = requestsWithDistance.find((req) => String(getRequestId(req)) === String(newestId));
       if (normalizedNewest) {
         handleSelectRequest(normalizedNewest);
       }
@@ -1065,7 +1134,7 @@ export default function LiveRequests() {
       });
 
     return () => controller.abort();
-  }, [selectedRequest?.id, selectedRequest?.lat, selectedRequest?.lon, gsLocation.lat, gsLocation.lon]);
+  }, [selectedRequest, gsLocation.lat, gsLocation.lon]);
 
   // Create deck.gl layers
   const layers = useMemo(() => {
@@ -1075,15 +1144,40 @@ export default function LiveRequests() {
     if (gsLocation.lat && gsLocation.lon) {
       markerLayers.push(
         new ScatterplotLayer({
+          id: "ground-station-halo",
+          data: [{
+            position: [gsLocation.lon, gsLocation.lat],
+            radius: 38,
+          }],
+          getPosition: d => d.position,
+          getRadius: d => d.radius,
+          radiusUnits: "pixels",
+          getFillColor: [...ROUTE_BLUE, 35],
+          getLineColor: [...ROUTE_BLUE, 150],
+          getLineWidth: 2,
+          lineWidthUnits: "pixels",
+          stroked: true,
+          filled: true,
+          pickable: false,
+        })
+      );
+
+      markerLayers.push(
+        new ScatterplotLayer({
           id: "ground-station",
           data: [{
             position: [gsLocation.lon, gsLocation.lat],
-            size: 40,
+            size: 24,
             isGS: true
           }],
           getPosition: d => d.position,
           getRadius: d => d.size,
-          getFillColor: d => [0, 102, 204, 255],
+          radiusUnits: "pixels",
+          getFillColor: d => [...ROUTE_BLUE, 255],
+          getLineColor: [255, 255, 255, 245],
+          getLineWidth: 4,
+          lineWidthUnits: "pixels",
+          stroked: true,
           onHover: ({ object }) => {
             if (object?.isGS) {
               document.body.style.cursor = "pointer";
@@ -1120,9 +1214,9 @@ export default function LiveRequests() {
       .filter(r => r.lat && r.lon)
       .map((req) => ({
         position: [req.lon, req.lat],
-        size: selectedRequest?.id === req.id ? 36 : 28,
+        size: isSameRequest(selectedRequest, req) ? 36 : 28,
         color: statusColors[req.status] || [108, 125, 141],
-        id: req.id,
+        id: getRequestId(req),
         data: req,
       }));
 
@@ -1169,7 +1263,7 @@ export default function LiveRequests() {
           id: "connection-route-glow",
           data: [{ path: routePath }],
           getPath: (d) => d.path,
-          getColor: [0, 102, 204, 110],
+          getColor: [...ROUTE_BLUE, 120],
           getWidth: 9,
           widthMinPixels: 4,
           widthMaxPixels: 13,
@@ -1184,12 +1278,42 @@ export default function LiveRequests() {
           id: "connection-route",
           data: [{ path: routePath }],
           getPath: (d) => d.path,
-          getColor: [217, 95, 58, 225],
+          getColor: [...ROUTE_BLUE, 245],
           getWidth: 4,
           widthMinPixels: 2,
           widthMaxPixels: 9,
           capRounded: true,
           jointRounded: true,
+          pickable: false,
+        })
+      );
+
+      markerLayers.push(
+        new ScatterplotLayer({
+          id: "connection-route-endpoints",
+          data: [
+            {
+              position: fallbackPath[0],
+              radius: 19,
+              fill: ROUTE_BLUE,
+              line: ROUTE_BLUE_DARK,
+            },
+            {
+              position: fallbackPath[1],
+              radius: 19,
+              fill: statusColors[selectedRequest.status] || [220, 38, 38],
+              line: ROUTE_BLUE_DARK,
+            },
+          ],
+          getPosition: (d) => d.position,
+          getRadius: (d) => d.radius,
+          radiusUnits: "pixels",
+          getFillColor: (d) => [...d.fill, 245],
+          getLineColor: (d) => [...d.line, 255],
+          getLineWidth: 4,
+          lineWidthUnits: "pixels",
+          stroked: true,
+          filled: true,
           pickable: false,
         })
       );
@@ -1209,10 +1333,10 @@ export default function LiveRequests() {
           getText: (d) => d.label,
           getSize: 13,
           sizeUnits: "pixels",
-          getColor: [15, 23, 42, 255],
+          getColor: [...ROUTE_BLUE, 255],
           background: true,
-          getBackgroundColor: [255, 255, 255, 235],
-          getBorderColor: [0, 102, 204, 180],
+          getBackgroundColor: [239, 247, 255, 245],
+          getBorderColor: [...ROUTE_BLUE, 210],
           getBorderWidth: 1,
           getTextAnchor: "middle",
           getAlignmentBaseline: "center",
@@ -1228,8 +1352,11 @@ export default function LiveRequests() {
   const selectedRouteDistanceKm = useMemo(() => {
     if (!selectedRequest) return null;
     if (Number.isFinite(roadRoute?.distanceKm)) return roadRoute.distanceKm;
-    return Number.isFinite(selectedRequest.distance) ? selectedRequest.distance : null;
-  }, [selectedRequest, roadRoute]);
+    if (Number.isFinite(selectedRequest.distance)) return selectedRequest.distance;
+    const coords = getRequestCoordinates(selectedRequest);
+    if (!coords || !Number.isFinite(gsLocation.lat) || !Number.isFinite(gsLocation.lon)) return null;
+    return calculateDistance(gsLocation.lat, gsLocation.lon, coords.lat, coords.lon);
+  }, [selectedRequest, roadRoute, gsLocation.lat, gsLocation.lon]);
 
   const selectedRouteDurationMin = Number.isFinite(roadRoute?.durationMin)
     ? roadRoute.durationMin
@@ -1308,8 +1435,9 @@ export default function LiveRequests() {
 
           <div style={{ display: "flex", gap: "8px" }}>
             {[
-              { value: "all", label: "All", Icon: MapPin },
+              { value: "normal", label: "Normal", Icon: MapPin },
               { value: "urgent", label: "Urgent", Icon: AlertTriangle },
+              { value: "high", label: "High", Icon: Zap },
               { value: "pending", label: "Pending", Icon: Hourglass },
               { value: "assigned", label: "Assigned", Icon: Plane },
             ].map((f) => (
@@ -1352,8 +1480,9 @@ export default function LiveRequests() {
               const statusColorHex = `rgb(${statusColor[0]}, ${statusColor[1]}, ${statusColor[2]})`;
               const priority = getRequestPriority(req);
               const priorityStyle = getPriorityStyle(priority);
-              const isSelected = selectedRequest?.id === req.id;
-              const isProcessing = processingId === req.id;
+              const requestId = getRequestId(req);
+              const isSelected = isSameRequest(selectedRequest, req);
+              const isProcessing = String(processingId) === String(requestId);
 
               const Spinner = () => (
                 <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
@@ -1379,7 +1508,7 @@ export default function LiveRequests() {
 
               return (
                 <div
-                  key={req.id}
+                  key={requestId}
                   onClick={() => handleSelectRequest(req)}
                   style={{
                     marginBottom: "10px",
@@ -1408,7 +1537,7 @@ export default function LiveRequests() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 800, fontSize: 14, color: "var(--text-primary)", marginBottom: 2 }}>{req.resource}</div>
-                        <div style={{ fontSize: 10, color: "var(--text-muted)" }}>#{req.id?.toString().slice(-6).toUpperCase()}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)" }}>#{requestId?.toString().slice(-6).toUpperCase()}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", background: statusColorHex, color: "#fff", borderRadius: 5 }}>{req.status}</span>
@@ -1439,7 +1568,7 @@ export default function LiveRequests() {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
                         <Clock size={11} />
-                        {new Date(req.timestamp || req.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        {formatTime(req.timestamp_ist || req.created_at_ist || req.timestamp || req.created_at)}
                       </div>
                     </div>
 
@@ -1454,13 +1583,13 @@ export default function LiveRequests() {
                       </button>
 
                       {(req.status === "Pending" || req.status === "Urgent") && (
-                        <ActionBtn onClick={(e) => handleAccept(req.id, e)} color="#0066cc" icon={CheckCircle} label="Accept & Assign" />
+                        <ActionBtn onClick={(e) => handleAccept(requestId, e)} color="#0066cc" icon={CheckCircle} label="Accept & Assign" />
                       )}
                       {req.status === "Assigned" && (
-                        <ActionBtn onClick={(e) => handleInTransit(req.id, e)} color="#0284c7" icon={Send} label="Launch Drone" />
+                        <ActionBtn onClick={(e) => handleInTransit(requestId, e)} color="#0284c7" icon={Send} label="Launch Drone" />
                       )}
                       {req.status === "In Transit" && (
-                        <ActionBtn onClick={(e) => handleDelivered(req.id, e)} color="#16a34a" icon={Truck} label="Confirm Delivery" />
+                        <ActionBtn onClick={(e) => handleDelivered(requestId, e)} color="#16a34a" icon={Truck} label="Confirm Delivery" />
                       )}
                     </div>
                   </div>

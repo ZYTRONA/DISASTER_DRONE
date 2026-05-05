@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Optional, Any
+from typing import cast
 from uuid import uuid4
 
 import jwt
@@ -41,6 +42,7 @@ URGENCY_ALIASES = {
     'urgent': 'Urgent',
     'normal': 'Normal',
 }
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 class Config:
@@ -54,13 +56,15 @@ class Config:
     JWT_ALG = 'HS256'
     JWT_EXP_H = int(os.getenv('JWT_EXPIRATION_HOURS', 24))
 
-    # Support comma-separated origins in .env
+    # Support comma-separated origins in .env. Accept both names because older
+    # project docs used CORS_ORIGINS while the app originally read CORS_ORIGIN.
+    DEFAULT_CORS_ORIGINS = (
+        'http://localhost:5173,http://localhost:5174,http://localhost:19006,'
+        'http://localhost:3000'
+    )
     CORS_ORIGINS = [
         o.strip()
-        for o in os.getenv(
-            'CORS_ORIGIN',
-            'http://localhost:5173,http://localhost:5174,http://localhost:19006'
-        ).split(',')
+        for o in os.getenv('CORS_ORIGINS', os.getenv('CORS_ORIGIN', DEFAULT_CORS_ORIGINS)).split(',')
         if o.strip()
     ]
 
@@ -295,10 +299,34 @@ def serialize_doc(doc) -> dict:
     doc_copy = dict(doc)
     if '_id' in doc_copy:
         doc_copy['_id'] = str(doc_copy['_id'])
+        doc_copy.setdefault('id', doc_copy['_id'])
+    if 'ref_id' in doc_copy:
+        doc_copy.setdefault('refId', doc_copy['ref_id'])
 
-    for key, value in doc_copy.items():
+    cart = doc_copy.get('cart')
+    items = doc_copy.get('items')
+    cart_items = []
+    if isinstance(cart, dict):
+        raw_items = cart.get('items')
+        if isinstance(raw_items, list):
+            cart_items = raw_items
+        elif isinstance(raw_items, dict):
+            cart_items = [
+                {'id': key, 'name': key, 'quantity': value}
+                for key, value in raw_items.items()
+            ]
+    elif isinstance(cart, list):
+        cart_items = cart
+    elif isinstance(items, list):
+        cart_items = items
+
+    if cart_items:
+        doc_copy['cart_items'] = cart_items
+
+    for key, value in list(doc_copy.items()):
         if isinstance(value, datetime):
-            doc_copy[key] = value.isoformat()
+            doc_copy[key] = to_utc_iso(value)
+            doc_copy[f'{key}_ist'] = to_ist_iso(value)
         elif isinstance(value, bytes):
             doc_copy[key] = value.decode()
 
@@ -320,6 +348,40 @@ def triage_sort_key(r):
 def normalize_urgency(value):
     urgency = str(value or '').strip()
     return URGENCY_ALIASES.get(urgency.lower(), 'Urgent')
+
+
+def to_ist_iso(value: datetime) -> str:
+    """Return an explicit India time ISO string for UI display fields."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(IST).isoformat()
+
+
+def to_utc_iso(value: datetime) -> str:
+    """Return an explicit UTC ISO string (always includes timezone)."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def safe_int(value: Any, default: int = 1) -> int:
+    """Best-effort int conversion for request payload fields."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(float(value.strip()))
+        except ValueError:
+            return default
+    if isinstance(value, (list, tuple)) and value:
+        return safe_int(value[0], default=default)
+    return default
 
 
 # ── REST: Health ──────────────────────────────────────────────────────────────
@@ -480,28 +542,71 @@ def submit_request():
     """Mobile user submits a relief request — no auth required."""
     data = req.get_json() or {}
 
-    resource = str(data.get('resource') or '').strip()
-    lat = data.get('lat')
-    lon = data.get('lon')
+    location = cast(dict[str, Any], data.get('location')) if isinstance(data.get('location'), dict) else {}
+    coords = cast(dict[str, Any], location.get('coords')) if isinstance(location.get('coords'), dict) else {}
+
+    resource = str(
+        data.get('resource')
+        or data.get('category')
+        or data.get('type')
+        or data.get('request_type')
+        or ''
+    ).strip()
+    lat = (
+        data.get('lat')
+        if data.get('lat') is not None
+        else data.get('latitude', location.get('lat', location.get('latitude', coords.get('latitude'))))
+    )
+    lon = (
+        data.get('lon')
+        if data.get('lon') is not None
+        else data.get(
+            'lng',
+            data.get('longitude', location.get('lon', location.get('lng', location.get('longitude', coords.get('longitude'))))),
+        )
+    )
 
     if not resource or lat is None or lon is None:
+        logger.warning(
+            'Rejected /request: missing required fields resource=%r lat=%r lon=%r keys=%s',
+            resource,
+            lat,
+            lon,
+            sorted(data.keys()),
+        )
         return jsonify({'message': 'resource, lat, lon required'}), 400
 
     try:
         lat = float(lat)
         lon = float(lon)
     except (TypeError, ValueError):
+        logger.warning('Rejected /request: coordinates must be numbers lat=%r lon=%r', lat, lon)
         return jsonify({'message': 'lat and lon must be numbers'}), 400
 
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        logger.warning('Rejected /request: invalid coordinate range lat=%s lon=%s', lat, lon)
         return jsonify({'message': 'Invalid coordinates'}), 400
+    if abs(lat) < 0.000001 and abs(lon) < 0.000001:
+        logger.warning('Rejected /request: zero GPS coordinates lat=%s lon=%s', lat, lon)
+        return jsonify({'message': 'GPS coordinates required before submitting request'}), 400
 
     urgency = normalize_urgency(data.get('urgency') or data.get('priority') or 'Urgent')
     status = 'Pending'
 
     ref_id = 'REQ-' + uuid4().hex[:8].upper()
     note = str(data.get('note') or data.get('description') or '').strip()[:1000]
-    cart = data.get('cart') or data.get('items') or {}
+    incoming_items = data.get('items')
+    cart = data.get('cart') or {}
+    if isinstance(cart, dict) and isinstance(incoming_items, list) and 'items' not in cart:
+        cart = {**cart, 'items': incoming_items}
+    elif not cart and isinstance(incoming_items, list):
+        cart = {'items': incoming_items}
+    people_affected = safe_int(
+        data.get('people') or data.get('people_affected') or (cart.get('items_count') if isinstance(cart, dict) else 1) or 1,
+        default=1,
+    )
+    disaster_type = str(data.get('disaster') or data.get('disaster_type') or '').strip()
+    state = str(data.get('state') or '').strip()
 
     try:
         db = get_db()
@@ -514,12 +619,15 @@ def submit_request():
             'note': note,
             'lat': lat,
             'lon': lon,
+            'latitude': lat,
+            'longitude': lon,
+            'location_accuracy': data.get('location_accuracy') or data.get('accuracy'),
             'urgency': urgency,
             'priority': urgency,
             'status': status,
-            'disaster_type': str(data.get('disaster') or data.get('disaster_type') or '').strip(),
-            'people_affected': int(data.get('people') or data.get('people_affected') or 1),
-            'state': str(data.get('state') or '').strip(),
+            'disaster_type': disaster_type,
+            'people_affected': people_affected,
+            'state': state,
             'cart': cart,
             'assigned_drone_id': None,
             'created_at': now_utc,
@@ -536,21 +644,36 @@ def submit_request():
             'note': note,
             'lat': lat,
             'lon': lon,
+            'latitude': lat,
+            'longitude': lon,
+            'location_accuracy': data.get('location_accuracy') or data.get('accuracy'),
             'urgency': urgency,
             'priority': urgency,
             'status': status,
             'cart': cart,
-            'state': str(data.get('state') or ''),
-            'people_affected': int(data.get('people') or data.get('people_affected') or 1),
-            'disaster_type': str(data.get('disaster') or data.get('disaster_type') or ''),
+            'cart_items': cart.get('items', []) if isinstance(cart, dict) else [],
+            'state': state,
+            'people_affected': people_affected,
+            'disaster_type': disaster_type,
             'created_at': now_utc.isoformat(),
+            'created_at_ist': to_ist_iso(now_utc),
+            'updated_at': now_utc.isoformat(),
+            'updated_at_ist': to_ist_iso(now_utc),
             'timestamp': now_utc.isoformat(),
+            'timestamp_ist': to_ist_iso(now_utc),
         }
 
         socketio.emit('new_request', new_req, to='gcs')  # type: ignore[call-arg]
         logger.info('New request %s (%s) urgency=%s', ref_id, resource, urgency)
 
-        return jsonify({'message': 'Request submitted', 'id': request_id, 'request_id': request_id, 'ref_id': ref_id}), 201
+        return jsonify({
+            'message': 'Request submitted',
+            'id': request_id,
+            'request_id': request_id,
+            'ref_id': ref_id,
+            'submitted_at': now_utc.isoformat(),
+            'submitted_at_ist': to_ist_iso(now_utc),
+        }), 201
     except Exception as e:
         logger.error('submit_request error: %s', e)
         return jsonify({'message': 'Failed to submit request'}), 500

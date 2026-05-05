@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MapPin, X, Package, Clock, User } from "lucide-react";
 import { useRequests } from "../context/RequestsContext";
 import RequestMap from "../components/Map";
+import { formatDateTime } from "../utils/dateTime";
 
 function RequestDetails({ request, onClose, onUpdateStatus }) {
   if (!request) return null;
@@ -46,7 +47,7 @@ function RequestDetails({ request, onClose, onUpdateStatus }) {
           <Clock size={18} />
           <div>
             <label>Requested</label>
-            <span>{new Date(request.created_at).toLocaleString()}</span>
+            <span>{formatDateTime(request.created_at_ist || request.timestamp_ist || request.created_at || request.timestamp)}</span>
           </div>
         </div>
 

@@ -23,6 +23,33 @@ const normalizeUrgency = (urgency) => {
   return urgencyMap[normalized] || 'Normal';
 };
 
+const idsMatch = (left, right) => {
+  if (left === undefined || left === null || right === undefined || right === null) return false;
+  return String(left) === String(right) || Number(left) === Number(right);
+};
+
+const normalizeLocation = (location) => {
+  const lat = Number(location?.lat ?? location?.latitude ?? location?.coords?.latitude);
+  const lon = Number(location?.lon ?? location?.lng ?? location?.longitude ?? location?.coords?.longitude);
+  const accuracy = Number(location?.accuracy ?? location?.coords?.accuracy);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new Error('GPS location is missing. Please enable location and try again.');
+  }
+  if (Math.abs(lat) < 0.000001 && Math.abs(lon) < 0.000001) {
+    throw new Error('GPS location is invalid. Please wait for GPS lock and try again.');
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    throw new Error('GPS location is outside valid coordinate range.');
+  }
+
+  return {
+    lat,
+    lon,
+    accuracy: Number.isFinite(accuracy) ? accuracy : null,
+  };
+};
+
 export function AppProvider({ children }) {
   // Category & Cart
   const [category, setCategory] = useState(null);
@@ -74,8 +101,9 @@ export function AppProvider({ children }) {
     if (!dbId) return;
 
     const handleStatusUpdate = ({ id, status }) => {
-      if (Number(id) === Number(dbId)) {
-        if (status === 'Assigned') setTrackStage(3);
+      if (idsMatch(id, dbId)) {
+        if (status === 'Assigned') setTrackStage(2);
+        if (status === 'In Transit') setTrackStage(3);
         if (status === 'Delivered') setTrackStage(4);
         if (status === 'UserConfirmed') setTrackStage(5);
       }
@@ -132,7 +160,7 @@ export function AppProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const setRequest = useCallback(async (newRefId, newDbId, itemsSummary) => {
+  const setRequest = useCallback(async (newRefId, newDbId, itemsSummary, submittedAt = null) => {
     setRefId(newRefId);
     setDbId(newDbId);
     setTrackStage(2);
@@ -144,7 +172,7 @@ export function AppProvider({ children }) {
         dbId: newDbId,
         resource: category,
         note: itemsSummary,
-        timestamp: new Date().toISOString(),
+        timestamp: submittedAt || new Date().toISOString(),
       };
 
       const saved = await AsyncStorage.getItem('ndrf_recent');
@@ -162,19 +190,32 @@ export function AppProvider({ children }) {
   const submitRequest = useCallback(async (requestData) => {
     try {
       setLoading(true);
-      const { resource, urgency, name, people, location, notes } = requestData;
+      const { resource, urgency, name, people, location, notes, items = [] } = requestData;
       const selectedUrgency = normalizeUrgency(urgency);
+      const gps = normalizeLocation(location);
+      const requesterName = String(name || 'Requester').trim();
+      const itemSummary = items.length
+        ? items.map((item) => `${item.quantity || item.qty || 1} ${item.unit || ''} ${item.name || item.id}`.trim()).join(', ')
+        : 'No item details';
+      const requestNote = `${requesterName} requested ${resource || 'General'} for ${people || 1} people. Items: ${itemSummary}${notes ? '. Notes: ' + notes : ''}`;
       
       // Transform request data to API format
       const payload = {
         resource: resource || 'General',
         cart: {
           items_count: people || 1,
-          notes: `${name} - ${notes || 'No additional notes'}`,
+          notes: notes || 'No additional notes',
+          items,
         },
-        note: `${name} requested ${resource} for ${people} people${notes ? ': ' + notes : ''}`,
-        lat: location?.lat || 0,
-        lon: location?.lon || 0,
+        items,
+        note: requestNote,
+        lat: gps.lat,
+        lon: gps.lon,
+        latitude: gps.lat,
+        longitude: gps.lon,
+        location_accuracy: gps.accuracy,
+        people: people || 1,
+        people_affected: people || 1,
         urgency: selectedUrgency,
         priority: selectedUrgency,
       };
@@ -182,9 +223,12 @@ export function AppProvider({ children }) {
       console.log('📤 Submitting request:', payload);
       const response = await submitRequestAPI(payload);
       
-      // Store the refId and dbId from response
-      if (response?.refId && response?.id) {
-        await setRequest(response.refId, response.id, payload.note);
+      // Store the refId and dbId from response. Backend currently returns ref_id.
+      const responseRefId = response?.refId || response?.ref_id;
+      const responseDbId = response?.id || response?.request_id;
+      if (responseRefId && responseDbId) {
+        const submittedAt = response?.submitted_at_ist || response?.submitted_at || response?.created_at_ist || response?.created_at;
+        await setRequest(responseRefId, responseDbId, payload.note, submittedAt);
       }
       
       setStatusMsg({
