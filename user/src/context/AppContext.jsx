@@ -152,10 +152,16 @@ export function AppProvider({ children }) {
     try {
       setLoading(true);
       const { resource, urgency, name, people, location, notes } = requestData;
-      
+
+      // Capitalize urgency to match backend expected values ('Critical' | 'High' | 'Normal')
+      const urgencyValue = urgency
+        ? urgency.charAt(0).toUpperCase() + urgency.slice(1).toLowerCase()
+        : 'Normal';
+
       // Transform request data to API format
       const payload = {
         resource: resource || 'General',
+        urgency: urgencyValue,
         cart: {
           items_count: people || 1,
           notes: `${name} - ${notes || 'No additional notes'}`,

@@ -149,6 +149,13 @@ const statusColors = {
   Critical: [220, 38, 38],    // #dc2626
 };
 
+const urgencyColors = {
+  Critical: { bg: "#dc2626", label: "Critical" },
+  High:     { bg: "#f59e0b", label: "High" },
+  Urgent:   { bg: "#d94a3f", label: "Urgent" },
+  Normal:   { bg: "#06b6d4", label: "Normal" },
+};
+
 const OSM_RASTER_STYLE = {
   version: 8,
   sources: {
@@ -995,18 +1002,35 @@ export default function LiveRequests() {
                         <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>ID: #{req.id?.toString().slice(-6).toUpperCase()}</div>
                       </div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                        background: statusColorHex,
-                        color: "#ffffff",
-                        borderRadius: "6px",
-                      }}
-                    >
-                      {req.status}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "5px 10px",
+                          background: statusColorHex,
+                          color: "#ffffff",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {req.status}
+                      </span>
+                      {req.urgency && urgencyColors[req.urgency] && (
+                        <span
+                          style={{
+                            fontSize: "9px",
+                            fontWeight: 700,
+                            padding: "3px 8px",
+                            background: urgencyColors[req.urgency].bg,
+                            color: "#ffffff",
+                            borderRadius: "4px",
+                            letterSpacing: "0.3px",
+                          }}
+                        >
+                          ⚡ {urgencyColors[req.urgency].label}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {req.distance !== null && (
